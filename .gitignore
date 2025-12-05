@@ -13,7 +13,6 @@ modelsim.ini
 # sw/tests/*/
 
 sw/tests/*/
-spatz_cluster/
 
 spatz/bootrom/*.elf
 spatz/bootrom/*.bin
