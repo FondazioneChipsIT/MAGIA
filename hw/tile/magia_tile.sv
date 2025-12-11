@@ -1800,8 +1800,6 @@ module magia_tile
   spatz_cc_wrapper #(
     .AddrWidth         ( magia_pkg::ADDR_W                       ),
     .DataWidth         ( magia_pkg::DATA_W                       ),
-    .UserWidth         ( magia_tile_pkg::AXI_DATA_U_W            ),
-    .DMADataWidth      ( magia_pkg::DATA_W                       ),
     .NumSpatzFPUs      ( SPATZ_NUM_FPU                           ),
     .NumSpatzIPUs      ( SPATZ_NUM_IPU                           ),
     .BootAddr          ( magia_tile_pkg::SPATZ_BOOT_ADDR         ),
