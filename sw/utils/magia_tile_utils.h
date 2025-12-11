@@ -38,15 +38,17 @@
 #define FSYNC_END       (0x000006FF)
 #define EVENT_UNIT_BASE (0x00000700)
 #define EVENT_UNIT_END  (0x000016FF)
-#define RESERVED_START  (0x00001700)   
-#define RESERVED_END    (0x0000FFFF)   
-#define STACK_START     (0x00010000)
-#define STACK_END       (0x0001FFFF)
-#define L1_BASE         (0x00020000)
-#define L1_SIZE         (0x000E0000)
-#define L1_TILE_OFFSET  (0x00100000)
-#define L2_BASE         (0xCC000000)
-#define TEST_END_ADDR   (0xCC030000)
+#define SPATZ_CTRL_BASE (0x00001700)  // Use magia_spatz_utils.h for Spatz control functions
+#define SPATZ_CTRL_END  (0x000017FF)
+#define RESERVED_START (0x00001800)   
+#define RESERVED_END   (0x0000FFFF)   
+#define STACK_START    (0x00010000)
+#define STACK_END      (0x0001FFFF)
+#define L1_BASE        (0x00020000)
+#define L1_SIZE        (0x000DFFFF)
+#define L1_TILE_OFFSET (0x00100000)
+#define L2_BASE        (0xCC000000)
+#define TEST_END_ADDR  (0xCC030000)
 
 #define DEFAULT_EXIT_CODE (0xDEFC)
 #define PASS_EXIT_CODE    (0xAAAA)
@@ -72,6 +74,8 @@
 #define mmio32(x) (*(volatile uint32_t *)(x))
 #define mmio16(x) (*(volatile uint16_t *)(x))
 #define mmio8(x)  (*(volatile uint8_t  *)(x))
+
+// Spatz Control: Use magia_spatz_utils.h for Spatz programming functions
 
 #define addr64(x) (*(uint64_t *)(&x))
 #define addr32(x) (*(uint32_t *)(&x))
