@@ -829,11 +829,12 @@ module magia_tile
 /*******************************************************/
 
   `HCI_ASSIGN_TO_INTF(hci_core_if[0],                                   core_l1_data_req,      core_l1_data_rsp)      // CV32E40P
-  `HCI_ASSIGN_TO_INTF(hci_core_if[1],                                   spatz_hci_req[0],      spatz_hci_rsp[0])      // Snitch HCI port 0
-  `HCI_ASSIGN_TO_INTF(hci_core_if[2],                                   spatz_hci_req[1],      spatz_hci_rsp[1])      // Spatz HCI port 0
-  `HCI_ASSIGN_TO_INTF(hci_core_if[3],                                   spatz_hci_req[2],      spatz_hci_rsp[2])      // Spatz HCI port 1
-  `HCI_ASSIGN_TO_INTF(hci_core_if[4],                                   spatz_hci_req[3],      spatz_hci_rsp[3])      // Spatz HCI port 2
-  `HCI_ASSIGN_TO_INTF(hci_core_if[5],                                   spatz_hci_req[4],      spatz_hci_rsp[4])      // Spatz HCI port 3
+  generate
+    for (genvar i = 0; i < magia_tile_pkg::SPATZ_HCI_PORTS; i++) begin : gen_spatz_hci_assign
+      `HCI_ASSIGN_TO_INTF(hci_core_if[i+1], spatz_hci_req[i], spatz_hci_rsp[i])
+    end
+  endgenerate
+
   `HCI_ASSIGN_TO_INTF(hci_redmule_if[0],                                redmule_data_req,      redmule_data_rsp)      // RedMulE
   `HCI_ASSIGN_TO_INTF(hci_dma_if[magia_tile_pkg::HCI_DMA_CH_READ_IDX],  idma_hci_read_req,  idma_hci_read_rsp)  // iDMA HCI read channel
   `HCI_ASSIGN_TO_INTF(hci_dma_if[magia_tile_pkg::HCI_DMA_CH_WRITE_IDX], idma_hci_write_req, idma_hci_write_rsp) // iDMA HCI write channel
@@ -1799,13 +1800,14 @@ module magia_tile
 
   spatz_cc_wrapper #(
     .AddrWidth         ( magia_pkg::ADDR_W                       ),
-    .DataWidth         ( magia_pkg::DATA_W                       ),
+    .DataWidth         ( magia_tile_pkg::SPATZ_TCDM_DATA_WIDTH   ),
     .NumSpatzFPUs      ( SPATZ_NUM_FPU                           ),
     .NumSpatzIPUs      ( SPATZ_NUM_IPU                           ),
     .BootAddr          ( magia_tile_pkg::SPATZ_BOOT_ADDR         ),
     .RVF               ( 1'b1                                    ),
-    .RVD               ( 1'b0                                    ),
-    .RVV               ( 1'b1                                    )
+    .RVD               ( magia_tile_pkg::SPATZ_RVD_PARAM         ),
+    .RVV               ( 1'b1                                    ),
+    .XDivSqrt          ( 1'b0                                    )  // Disabled: matches spatz_pkg: 'temporarily disable'
   ) i_spatz_cc_core (
     .clk_i             ( spatz_clk                               ),  // Use gated clock
     .rst_ni            ( rst_ni                                  ),

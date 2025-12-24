@@ -22,5 +22,8 @@ spatz/bootrom/*.hex
 spatz/sw/bin/*.elf
 spatz/sw/bin/*.bin
 spatz/sw/bin/*.dump
+spatz/sw/bin/*.o
+
+spatz/sw/headers_bin/*.h
 
 

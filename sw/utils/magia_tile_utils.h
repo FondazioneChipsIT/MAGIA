@@ -196,7 +196,10 @@ uint32_t get_time(){
     return timel;
 }
 
+<<<<<<< HEAD
 // Additional Flex-V CSR access functions based on CSR table
+=======
+>>>>>>> 97a5ff8 (Major update: 64-bit double precision support, parameterized Spatz CC, and improved SW flow: Enabled double precision with 64-bit data ports, Parameterized Spatz CC istantiation, Modified Makefile, bootrom and added spatz_crt0.s for easier SW development, Added new test infrastructure and task examples, Added README in spatz/ explaining usage)
 static inline uint32_t get_mstatus(){
     uint32_t mstatus;
     asm volatile("csrr %0, 0x300" :"=r"(mstatus):); // MSTATUS (0x300)
@@ -245,17 +248,23 @@ static inline uint32_t get_uhartid(){
     return uhartid;
 }
 
-// Flex-V performance counter control
-static inline void perf_counter_enable(){
-    uint32_t pcer = 3; // Enable cycles (bit 0) and instruction count (bit 1)
-    uint32_t pcmr = 1; // Enable global performance counter
-    asm volatile("csrw 0x7e0, %0" ::"r"(pcer)); // PCER_MACHINE (0x7E0)
-    asm volatile("csrw 0x7e1, %0" ::"r"(pcmr)); // PCMR_MACHINE (0x7E1)
+
+// CV32E40P Performance Counter Functions
+static inline void cv32e40p_ccount_enable(){
+    asm volatile("csrw 0x7E0, %0" :: "r"(0x1));  // Enable PCCR[0]
+    asm volatile("csrw 0x7E1, %0" :: "r"(0x1));  // Enable counting, , no saturation
 }
 
-static inline void perf_counter_disable(){
-    uint32_t pcmr = 0; // Disable global performance counter
-    asm volatile("csrw 0x7e1, %0" ::"r"(pcmr)); // PCMR_MACHINE (0x7E1)
+// Read CV32E40P cycle counter
+static inline uint32_t cv32e40p_get_cycles(){
+    uint32_t cycles;
+    asm volatile("csrr %0, 0x780" : "=r"(cycles));  // Read PCCR[0]
+    return cycles;
+}
+
+// Disable CV32E40P cycle counter
+static inline void cv32e40p_ccount_disable(){
+    asm volatile("csrw 0x7E1, %0" :: "r"(0x0));  // Disable counting
 }
 
 #endif /*MAGIA_TILE_UTILS_H*/

@@ -31,8 +31,12 @@ dependencies:
   spatz             : { git: "https://github.com/pulp-platform/spatz.git"             , rev: 3c8caf502dd175a12382f0682d3fd8ba3dcb0bab } # branch: lb/magia-spatz_cc
 
   cv32e40p          : { git: "https://github.com/pulp-platform/cv32e40p.git"          , rev: 37a82d337ba60129c333d104c29e816d0698b53b } # branch: lb/magia_core
+<<<<<<< HEAD
   spatz             : { git: "https://github.com/pulp-platform/spatz.git"             , rev: 3c8caf502dd175a12382f0682d3fd8ba3dcb0bab } # branch: lb/magia-spatz_cc
 
+=======
+  spatz             : { git: "https://github.com/pulp-platform/spatz.git"             , rev: fdeedf0713f7a5fe2133b7a4409023601e96f764 } # branch: lb/magia-spatz_cc
+>>>>>>> 97a5ff8 (Major update: 64-bit double precision support, parameterized Spatz CC, and improved SW flow: Enabled double precision with 64-bit data ports, Parameterized Spatz CC istantiation, Modified Makefile, bootrom and added spatz_crt0.s for easier SW development, Added new test infrastructure and task examples, Added README in spatz/ explaining usage)
   idma              : { git: "https://github.com/pulp-platform/iDMA.git"              , rev: a6b190c7991331432afa9a2899d032bc1b176830 } # branch: vi/redmule_scaleup
   hwpe-stream       : { git: "https://github.com/pulp-platform/hwpe-stream.git"       , version: 1.6                                  }
   hwpe-ctrl         : { git: "https://github.com/pulp-platform/hwpe-ctrl.git"         , rev: c35d5b0886ab549fb9144c3c14a4682112330e21 } # branch: yt/reqrsp
@@ -82,6 +86,10 @@ sources:
       - hw/tile/converters/tcdm2obi.sv
       - hw/tile/converters/tcdm2hci_atomic.sv
       - hw/tile/converters/reqrsp2obi.sv
+      - hw/tile/converters/tcdm64_to_dual_hci32.sv
+      - hw/tile/converters/tcdm64_to_dual_tcdm32.sv
+      - hw/tile/converters/tcdm64_to_dual_hci32_atomic.sv
+      - hw/tile/converters/reqrsp64_to_obi32.sv
       - hw/tile/obi_demux_addr.sv
       - hw/tile/l1_spm.sv
       - hw/tile/xif_inst_dispatcher.sv
@@ -138,6 +146,10 @@ sources:
       - hw/tile/converters/tcdm2obi.sv
       - hw/tile/converters/tcdm2hci_atomic.sv
       - hw/tile/converters/reqrsp2obi.sv
+      - hw/tile/converters/tcdm64_to_dual_hci32.sv
+      - hw/tile/converters/tcdm64_to_dual_tcdm32.sv
+      - hw/tile/converters/tcdm64_to_dual_hci32_atomic.sv
+      - hw/tile/converters/reqrsp64_to_obi32.sv
       - hw/tile/obi_demux_addr.sv
       - hw/tile/l1_spm.sv
       - hw/tile/xif_inst_dispatcher.sv
@@ -193,6 +205,10 @@ sources:
       - hw/tile/converters/tcdm2obi.sv
       - hw/tile/converters/tcdm2hci_atomic.sv
       - hw/tile/converters/reqrsp2obi.sv
+      - hw/tile/converters/tcdm64_to_dual_hci32.sv
+      - hw/tile/converters/tcdm64_to_dual_tcdm32.sv
+      - hw/tile/converters/tcdm64_to_dual_hci32_atomic.sv
+      - hw/tile/converters/reqrsp64_to_obi32.sv
       - hw/tile/obi_demux_addr.sv
       - hw/tile/l1_spm.sv
       - hw/tile/xif_inst_dispatcher.sv
