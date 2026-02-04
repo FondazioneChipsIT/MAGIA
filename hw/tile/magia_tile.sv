@@ -527,6 +527,49 @@ module magia_tile
 /**             Type Conversions Beginning            **/
 /*******************************************************/
 
+  // Core data demux signals
+  magia_tile_pkg::core_data_req_t core_data_req_to_xbar;
+  magia_tile_pkg::core_data_rsp_t core_data_rsp_from_xbar;
+  magia_tile_pkg::eu_direct_req_t eu_direct_req;
+  magia_tile_pkg::eu_direct_rsp_t eu_direct_rsp;
+  
+  // EU direct with pipeline cut
+  magia_tile_pkg::eu_direct_req_t eu_direct_req_cut;
+  magia_tile_pkg::eu_direct_rsp_t eu_direct_rsp_cut;
+
+  // Core data demux: splits requests between regular crossbar and EU direct link
+  core_data_demux_eu_direct i_core_data_demux_eu_direct (
+    .clk_i              ( sys_clk                 ),
+    .rst_ni             ( rst_ni                  ),
+    
+    // Core interface
+    .core_data_req_i    ( core_data_req           ),
+    .core_data_rsp_o    ( core_data_rsp           ),
+    
+    // Regular crossbar interface
+    .xbar_data_req_o    ( core_data_req_to_xbar   ),
+    .xbar_data_rsp_i    ( core_data_rsp_from_xbar ),
+    
+    // EU direct link interface
+    .eu_direct_req_o    ( eu_direct_req           ),
+    .eu_direct_rsp_i    ( eu_direct_rsp           )
+  );
+  // EU direct pipeline cut
+  eu_direct_cut #(
+    .eu_direct_req_t ( magia_tile_pkg::eu_direct_req_t ),
+    .eu_direct_rsp_t ( magia_tile_pkg::eu_direct_rsp_t ),
+    .Bypass          ( 1'b0                            ),
+    .BypassReq       ( 1'b0                            ),
+    .BypassRsp       ( 1'b0                            )
+  ) i_eu_direct_cut (
+    .clk_i       ( sys_clk            ),
+    .rst_ni      ( rst_ni             ),
+    .sbr_req_i   ( eu_direct_req      ),
+    .sbr_rsp_o   ( eu_direct_rsp      ),
+    .mgr_req_o   ( eu_direct_req_cut  ),
+    .mgr_rsp_i   ( eu_direct_rsp_cut  )
+  );
+
   // Convert core data interface to OBI for crossbar
   data2obi_req i_core_data2obi_req (
     .data_req_i ( core_data_req_to_xbar ),
@@ -1116,31 +1159,8 @@ module magia_tile
 /**      Core Data Demuxing (OBI XBAR) Beginning      **/
 /*******************************************************/
 
-  obi_atop_resolver #(
-    .SbrPortObiCfg             ( magia_tile_pkg::obi_amo_cfg                ),
-    .MgrPortObiCfg             ( obi_pkg::ObiDefaultConfig                  ),
-    .sbr_port_obi_req_t        ( magia_tile_pkg::core_obi_data_req_t        ),
-    .sbr_port_obi_rsp_t        ( magia_tile_pkg::core_obi_data_rsp_t        ),
-    .mgr_port_obi_req_t        (                                            ),
-    .mgr_port_obi_rsp_t        (                                            ),
-    .mgr_port_obi_a_optional_t ( magia_tile_pkg::core_data_obi_a_optional_t ),
-    .mgr_port_obi_r_optional_t ( magia_tile_pkg::core_data_obi_r_optional_t ),
-    .LrScEnable                (                                            ),
-    .RegisterAmo               ( magia_tile_pkg::RegisterAmo                )
-  ) i_obi_atomics (
-    .clk_i          ( sys_clk                                               ),
-    .rst_ni         ( rst_ni                                                ),
-    .testmode_i     ( test_mode_i                                           ),
-    .sbr_port_req_i ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_L1SPM_IDX] ),
-    .sbr_port_rsp_o ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_L1SPM_IDX] ),
-    .mgr_port_req_o ( core_l1_data_amo_req                                  ),
-    .mgr_port_rsp_i ( core_l1_data_amo_rsp                                  )
-  );
-
-  // Cut only external paths comming from the AXI XBAR
-  assign obi_xbar_slv_cut_req[0] = obi_xbar_slv_req[0];
-  assign obi_xbar_slv_rsp[0]     = obi_xbar_slv_cut_rsp[0];
-  for (genvar i = 1; i < magia_tile_pkg::N_MGR; i++) begin: gen_obi_xbar_sbr_cut
+  // OBI cut instances for EXT and SPATZ master ports
+  for (genvar i = magia_tile_pkg::OBI_EXT_IDX; i <= magia_tile_pkg::OBI_SPATZ_IDX; i++) begin : gen_obi_cut
     obi_cut #(
       .ObiCfg       ( magia_tile_pkg::obi_amo_cfg            ),
       .obi_a_chan_t ( magia_tile_pkg::core_data_obi_a_chan_t ),
@@ -1202,6 +1222,27 @@ module magia_tile
       .mgr_port_rsp_i ( core_mem_data_rsp[i]     )
     );
    end
+
+  obi_atop_resolver #(
+    .SbrPortObiCfg             ( magia_tile_pkg::obi_amo_cfg                ),
+    .MgrPortObiCfg             ( obi_pkg::ObiDefaultConfig                  ),
+    .sbr_port_obi_req_t        ( magia_tile_pkg::core_obi_data_req_t        ),
+    .sbr_port_obi_rsp_t        ( magia_tile_pkg::core_obi_data_rsp_t        ),
+    .mgr_port_obi_req_t        (                                            ),
+    .mgr_port_obi_rsp_t        (                                            ),
+    .mgr_port_obi_a_optional_t ( magia_tile_pkg::core_data_obi_a_optional_t ),
+    .mgr_port_obi_r_optional_t ( magia_tile_pkg::core_data_obi_r_optional_t ),
+    .LrScEnable                (                                            ),
+    .RegisterAmo               ( magia_tile_pkg::RegisterAmo                )
+  ) i_obi_atomics (
+    .clk_i          ( sys_clk                                      ),
+    .rst_ni         ( rst_ni                                       ),
+    .testmode_i     ( test_mode_i                                  ),
+    .sbr_port_req_i ( core_mem_data_req[magia_tile_pkg::L1SPM_IDX] ),
+    .sbr_port_rsp_o ( core_mem_data_rsp[magia_tile_pkg::L1SPM_IDX] ),
+    .mgr_port_req_o ( core_l1_data_amo_req                         ),
+    .mgr_port_rsp_i ( core_l1_data_amo_rsp                         )
+  );
 
 /*******************************************************/
 /**         Core Data Demuxing (OBI XBAR) End         **/
@@ -1735,14 +1776,14 @@ module magia_tile
 `endif
   
   magia_event_unit #(
-    .NB_CORES         ( 1  ), // Single core system
-    .NB_SW_EVT        ( 1  ), // Minimum 1 SW event to avoid indexing issues (unused but required)
-    .NB_BARR          ( 0  ), // No barriers needed with single core
-    .NB_HW_MUT        ( 0  ), // No mutexes needed with single core
-    .MUTEX_MSG_W      ( 32 ), // Keep default even if unused
-    .DISP_FIFO_DEPTH  ( 0  ), // No task dispatcher needed
-    .EVNT_WIDTH       ( 8  ), // SOC event width (keep default)
-    .SOC_FIFO_DEPTH   ( 8  )  // SOC FIFO depth (keep default)
+    .NB_CORES         ( 1                                          ),
+    .NB_SW_EVT        ( 1                                          ), 
+    .NB_BARR          ( 2                                          ), 
+    .NB_HW_MUT        ( 1                                          ), 
+    .MUTEX_MSG_W      ( 32                                         ), 
+    .DISP_FIFO_DEPTH  ( 1                                          ), 
+    .EVNT_WIDTH       ( 8                                          ), 
+    .SOC_FIFO_DEPTH   ( 8                                          )  
   ) i_magia_event_unit (
     .clk_i              ( sys_clk              ),
     .rst_ni             ( rst_ni               ),
@@ -1768,16 +1809,16 @@ module magia_tile
     .dbg_req_i          ( debug_req_i          ),
     .core_dbg_req_o     ( eu_core_dbg_req      ),
 
-    // EU Direct Link Interface
-    .eu_direct_req_i      ( eu_direct_req.req                      ),
-    .eu_direct_addr_i     ( eu_direct_req.addr                     ),
-    .eu_direct_wen_i      ( eu_direct_req.wen                      ),
-    .eu_direct_wdata_i    ( eu_direct_req.wdata                    ),
-    .eu_direct_be_i       ( eu_direct_req.be                       ),
-    .eu_direct_gnt_o      ( eu_direct_rsp.gnt                      ),
-    .eu_direct_rvalid_o   ( eu_direct_rsp.rvalid                   ),
-    .eu_direct_rdata_o    ( eu_direct_rsp.rdata                    ),
-    .eu_direct_err_o      ( eu_direct_rsp.err                      ),
+    // EU Direct Link Interface (with cut for timing)
+    .eu_direct_req_i      ( eu_direct_req_cut.req                  ),
+    .eu_direct_addr_i     ( eu_direct_req_cut.addr                 ),
+    .eu_direct_wen_i      ( eu_direct_req_cut.wen                  ),
+    .eu_direct_wdata_i    ( eu_direct_req_cut.wdata                ),
+    .eu_direct_be_i       ( eu_direct_req_cut.be                   ),
+    .eu_direct_gnt_o      ( eu_direct_rsp_cut.gnt                  ),
+    .eu_direct_rvalid_o   ( eu_direct_rsp_cut.rvalid               ),
+    .eu_direct_rdata_o    ( eu_direct_rsp_cut.rdata                ),
+    .eu_direct_err_o      ( eu_direct_rsp_cut.err                  ),
     
     // OBI Peripheral Slave Interface
     .obi_req_i        ( core_mem_data_req[5]                       ),
@@ -1804,11 +1845,11 @@ module magia_tile
     .NumSpatzFPUs      ( SPATZ_NUM_FPU                           ),
     .NumSpatzIPUs      ( SPATZ_NUM_IPU                           ),
     .BootAddr          ( magia_tile_pkg::SPATZ_BOOT_ADDR         ),
-    .FPUImplementation ( magia_tile_pkg::SPATZ_FPUImplementation ),
-    .RVF               ( 1'b1                                    ),
+    .RVF               ( magia_tile_pkg::SPATZ_RVF_PARAM         ),
     .RVD               ( magia_tile_pkg::SPATZ_RVD_PARAM         ),
-    .RVV               ( 1'b1                                    ),
-    .XDivSqrt          ( 1'b0                                    )  // Disabled: matches spatz_pkg: 'temporarily disable'
+    .RVV               ( magia_tile_pkg::SPATZ_RVV_PARAM         ),
+    .XDivSqrt          ( magia_tile_pkg::SPATZ_XDIVSQRT_PARAM    ),
+    .FPUImplementation ( magia_tile_pkg::SPATZ_FPUImplementation )
   ) i_spatz_cc_core (
     .clk_i             ( spatz_clk                               ),  // Use gated clock
     .rst_ni            ( rst_ni                                  ),
@@ -1852,9 +1893,9 @@ module magia_tile
   assign spatz_enable_prefetching = 1'b0;  
 
   snitch_icache #(
-    .NR_FETCH_PORTS     ( 1                                                                         ), // Single Spatz CC core
+    .NR_FETCH_PORTS     ( 1                                                  ), // Single Spatz CC core
     .L0_LINE_COUNT      ( 8                                                  ), // L0 cache lines
-    .LINE_WIDTH         ( magia_tile_pkg::SPATZ_ICACHE_LINE_WIDTH            ), // 128 bits
+    .LINE_WIDTH         ( magia_tile_pkg::SPATZ_ICACHE_LINE_WIDTH            ), // 256 bits
     .LINE_COUNT         ( magia_tile_pkg::SPATZ_ICACHE_LINE_COUNT            ), // 32 lines
     .SET_COUNT          ( magia_tile_pkg::SPATZ_ICACHE_WAYS                  ), // 2-way set associative
     .FETCH_AW           ( magia_pkg::ADDR_W                                  ), // Address width
