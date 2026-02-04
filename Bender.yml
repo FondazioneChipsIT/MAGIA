@@ -64,6 +64,10 @@ sources:
       - hw/mesh/magia_pkg.sv
       - hw/tile/magia_tile_pkg.sv
       # MAGIA Tile
+      - hw/include/xbar_periph_bus_if.sv         
+      - hw/tile/cluster_event_map.sv             
+      - hw/tile/magia_event_unit.sv              
+      - hw/tile/eu_direct_cut.sv
       - hw/tile/converters/data2obi.sv
       - hw/tile/converters/obi2data.sv
       - hw/tile/converters/instr2obi.sv
@@ -124,6 +128,10 @@ sources:
       - hw/tile/magia_tile_pkg.sv
       - hw/mesh/noc/magia_noc_pkg.sv
       # MAGIA Tile
+      - hw/include/xbar_periph_bus_if.sv  
+      - hw/tile/cluster_event_map.sv      
+      - hw/tile/magia_event_unit.sv       
+      - hw/tile/eu_direct_cut.sv
       - hw/tile/converters/data2obi.sv
       - hw/tile/converters/obi2data.sv
       - hw/tile/converters/instr2obi.sv
@@ -183,6 +191,10 @@ sources:
       - hw/tile/magia_tile_pkg.sv
       - hw/mesh/noc/magia_noc_pkg.sv
       # MAGIA Tile
+      - hw/include/xbar_periph_bus_if.sv         
+      - hw/tile/cluster_event_map.sv             
+      - hw/tile/magia_event_unit.sv             
+      - hw/tile/eu_direct_cut.sv
       - hw/tile/converters/data2obi.sv
       - hw/tile/converters/obi2data.sv
       - hw/tile/converters/instr2obi.sv
