@@ -38,7 +38,7 @@
 #define FSYNC_END       (0x000006FF)
 #define EVENT_UNIT_BASE (0x00000700)
 #define EVENT_UNIT_END  (0x000016FF)
-#define SPATZ_CTRL_BASE (0x00001700)
+#define SPATZ_CTRL_BASE (0x00001700)  // Use magia_spatz_utils.h for Spatz control functions
 #define SPATZ_CTRL_END  (0x000017FF)
 #define RESERVED_START (0x00001800)   
 #define RESERVED_END   (0x0000FFFF)   
@@ -48,7 +48,7 @@
 #define L1_SIZE        (0x000DFFFF)
 #define L1_TILE_OFFSET (0x00100000)
 #define L2_BASE        (0xCC000000)
-#define TEST_END_ADDR  (0xCCFF0000)
+#define TEST_END_ADDR  (0xCC030000)
 
 #define DEFAULT_EXIT_CODE (0xDEFC)
 #define PASS_EXIT_CODE    (0xAAAA)
@@ -196,10 +196,7 @@ uint32_t get_time(){
     return timel;
 }
 
-<<<<<<< HEAD
 // Additional Flex-V CSR access functions based on CSR table
-=======
->>>>>>> 97a5ff8 (Major update: 64-bit double precision support, parameterized Spatz CC, and improved SW flow: Enabled double precision with 64-bit data ports, Parameterized Spatz CC istantiation, Modified Makefile, bootrom and added spatz_crt0.s for easier SW development, Added new test infrastructure and task examples, Added README in spatz/ explaining usage)
 static inline uint32_t get_mstatus(){
     uint32_t mstatus;
     asm volatile("csrr %0, 0x300" :"=r"(mstatus):); // MSTATUS (0x300)

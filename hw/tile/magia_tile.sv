@@ -151,8 +151,8 @@ module magia_tile
   magia_tile_pkg::core_obi_data_rsp_t core_obi_data_rsp;
 
 
-  magia_tile_pkg::core_obi_data_req_t[magia_tile_pkg::N_SBR-1:0] core_mem_data_req; // cv32e40x: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> spatz,cv32e40p: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> RedMulE_ctrl, Index 3 -> iDMA_ctrl, Index 4 -> FSync_ctrl, Index 5 -> Event_Unit Index 6 -> Spatz_ctrl
-  magia_tile_pkg::core_obi_data_rsp_t[magia_tile_pkg::N_SBR-1:0] core_mem_data_rsp; // cv32e40x: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> spatz,cv32e40p: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> RedMulE_ctrl, Index 3 -> iDMA_ctrl, Index 4 -> FSync_ctrl, Index 5 -> Event_Unit Index 6 -> Spatz_ctrl
+  magia_tile_pkg::core_obi_data_req_t[magia_tile_pkg::N_SBR-1:0] core_mem_data_req; // cv32e40x: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> event_unit, Index 3 -> spatz,cv32e40p: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> RedMulE_ctrl, Index 3 -> iDMA_ctrl, Index 4 -> FSync_ctrl, Index 5 -> Event_Unit Index 6 -> Spatz_ctrl
+  magia_tile_pkg::core_obi_data_rsp_t[magia_tile_pkg::N_SBR-1:0] core_mem_data_rsp; // cv32e40x: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> event_unit, Index 3 -> spatz,cv32e40p: Index 0 -> L2, Index 1 -> L1SPM, Index 2 -> RedMulE_ctrl, Index 3 -> iDMA_ctrl, Index 4 -> FSync_ctrl, Index 5 -> Event_Unit Index 6 -> Spatz_ctrl
 
   magia_tile_pkg::core_obi_data_req_t[magia_tile_pkg::N_SBR-1:0] core_mem_data_cut_req; // Index 0 -> L2, Index 1 -> L1SPM
   magia_tile_pkg::core_obi_data_rsp_t[magia_tile_pkg::N_SBR-1:0] core_mem_data_cut_rsp; // Index 0 -> L2, Index 1 -> L1SPM
@@ -287,6 +287,8 @@ module magia_tile
   logic fsync_done;
   logic fsync_error;
 
+
+  
   // Event arrays for Event Unit (need proper 2D array structure)
   logic [0:0] [3:0] acc_events_array;
   logic [0:0] [1:0] dma_events_array;
@@ -329,11 +331,7 @@ module magia_tile
   logic [0:0]                                           eu_core_clk_en;     // [0:0] array
   logic [0:0]                                           eu_core_dbg_req;    // [0:0] array
 
-  // Core data demux signals
-  magia_tile_pkg::core_data_req_t core_data_req_to_xbar;
-  magia_tile_pkg::core_data_rsp_t core_data_rsp_from_xbar;
-  magia_tile_pkg::eu_direct_req_t eu_direct_req;
-  magia_tile_pkg::eu_direct_rsp_t eu_direct_rsp;
+
 
   // Spatz CC signals
   snitch_pkg::interrupts_t spatz_irq;
@@ -537,23 +535,7 @@ module magia_tile
   magia_tile_pkg::eu_direct_req_t eu_direct_req_cut;
   magia_tile_pkg::eu_direct_rsp_t eu_direct_rsp_cut;
 
-  // Core data demux: splits requests between regular crossbar and EU direct link
-  core_data_demux_eu_direct i_core_data_demux_eu_direct (
-    .clk_i              ( sys_clk                 ),
-    .rst_ni             ( rst_ni                  ),
-    
-    // Core interface
-    .core_data_req_i    ( core_data_req           ),
-    .core_data_rsp_o    ( core_data_rsp           ),
-    
-    // Regular crossbar interface
-    .xbar_data_req_o    ( core_data_req_to_xbar   ),
-    .xbar_data_rsp_i    ( core_data_rsp_from_xbar ),
-    
-    // EU direct link interface
-    .eu_direct_req_o    ( eu_direct_req           ),
-    .eu_direct_rsp_i    ( eu_direct_rsp           )
-  );
+
   // EU direct pipeline cut
   eu_direct_cut #(
     .eu_direct_req_t ( magia_tile_pkg::eu_direct_req_t ),
@@ -1235,13 +1217,13 @@ module magia_tile
     .LrScEnable                (                                            ),
     .RegisterAmo               ( magia_tile_pkg::RegisterAmo                )
   ) i_obi_atomics (
-    .clk_i          ( sys_clk                                      ),
-    .rst_ni         ( rst_ni                                       ),
-    .testmode_i     ( test_mode_i                                  ),
-    .sbr_port_req_i ( core_mem_data_req[magia_tile_pkg::L1SPM_IDX] ),
-    .sbr_port_rsp_o ( core_mem_data_rsp[magia_tile_pkg::L1SPM_IDX] ),
-    .mgr_port_req_o ( core_l1_data_amo_req                         ),
-    .mgr_port_rsp_i ( core_l1_data_amo_rsp                         )
+    .clk_i          ( sys_clk                                               ),
+    .rst_ni         ( rst_ni                                                ),
+    .testmode_i     ( test_mode_i                                           ),
+    .sbr_port_req_i ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_L1SPM_IDX] ),
+    .sbr_port_rsp_o ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_L1SPM_IDX] ),
+    .mgr_port_req_o ( core_l1_data_amo_req                                  ),
+    .mgr_port_rsp_i ( core_l1_data_amo_rsp                                  )
   );
 
 /*******************************************************/
@@ -1748,8 +1730,13 @@ module magia_tile
   ) i_spatz_ctrl (
     .clk_i     ( sys_clk                               ),
     .rst_ni    ( rst_ni                                ),
-    .obi_req_i ( core_mem_data_req[6]                  ),  
-    .obi_rsp_o ( core_mem_data_rsp[6]                  ),
+    `ifdef CV32E40X
+    .obi_req_i ( core_mem_data_req[3]                 ),  
+    .obi_rsp_o ( core_mem_data_rsp[3]                 ),
+     `else
+    .obi_req_i ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_SPATZ_CTRL_IDX]                  ),  
+    .obi_rsp_o ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_SPATZ_CTRL_IDX]                  ),
+    `endif
     .clk_en_o  ( spatz_clk_en                          ),  
     .start_o   ( spatz_start                           ),  
     .done_o    ( spatz_done                            )  
@@ -1761,12 +1748,7 @@ module magia_tile
 /**                 Event Unit Beginning              **/
 /*******************************************************/
 
-  // Event array assignments for proper 2D array structure
-  assign acc_events_array[0]     = {redmule_evt[0][1], redmule_evt[0][0], redmule_busy, spatz_done};
-  assign dma_events_array[0]     = {idma_o2a_done, idma_a2o_done};
-  assign timer_events_array[0]   = 2'b00;
-  assign other_events_array[0] =   {idma_o2a_busy, idma_a2o_busy, idma_o2a_start, idma_a2o_start, idma_o2a_error, idma_a2o_error, fsync_error, fsync_done, spatz_start, 23'b0};  // iDMA status events [31:28]|iDMA errors [27:26]|Fsync [25:24]|Spatz start [23]|Reserved [22:0]
->>>>>>> 7690ee5 (Bumped spatz_cc first version)
+
 
 `ifdef CV32E40X
   assign eu_core_irq_ack    = eu_core_irq_req;
@@ -1821,8 +1803,13 @@ module magia_tile
     .eu_direct_err_o      ( eu_direct_rsp_cut.err                  ),
     
     // OBI Peripheral Slave Interface
-    .obi_req_i        ( core_mem_data_req[5]                       ),
-    .obi_rsp_o        ( core_mem_data_rsp[5]                       )
+    `ifdef CV32E40X
+    .obi_req_i ( core_mem_data_req[2]                ),  
+    .obi_rsp_o ( core_mem_data_rsp[2]                )
+     `else
+    .obi_req_i ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_EVENT_UNIT_IDX ]                  ),  
+    .obi_rsp_o ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_EVENT_UNIT_IDX ]                  )
+    `endif                      
   );
 
 /*******************************************************/

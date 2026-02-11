@@ -87,8 +87,6 @@ package magia_tile_pkg;
   localparam logic [magia_pkg::ADDR_W-1:0] L2_ADDR_END              = L2_ADDR_START + L2_SIZE; 
 
 
-<<<<<<< HEAD
-=======
 //SPATZ PARAMETERS from Makefile defines
   //SPATZ_RVD (Double-width vector extension support)
   `ifdef SPATZ_RVD
@@ -213,7 +211,6 @@ package magia_tile_pkg;
   parameter int unsigned SPATZ_TCDM_DATA_WIDTH = SPATZ_RVD_PARAM ? 64 : 32;                  // Spatz TCDM data width
   parameter int unsigned SPATZ_TCDM_STRB_WIDTH = SPATZ_RVD_PARAM ? 8 : 4;                    // Spatz TCDM strobe width
 
->>>>>>> 97a5ff8 (Major update: 64-bit double precision support, parameterized Spatz CC, and improved SW flow: Enabled double precision with 64-bit data ports, Parameterized Spatz CC istantiation, Modified Makefile, bootrom and added spatz_crt0.s for easier SW development, Added new test infrastructure and task examples, Added README in spatz/ explaining usage)
   // Parameters used by the HCI
   parameter int unsigned N_HWPE  = 1;                                                   // Number of HWPEs attached to the port
   parameter int unsigned N_CORE  = 1 + SPATZ_HCI_PORTS;                                 // Number of Core ports: 1 CV32 + Spatz HCI ports (RVD=1: 11 total, RVD=0: 6 total)
@@ -602,8 +599,8 @@ package magia_tile_pkg;
 
 `ifdef CV32E40X
   typedef enum logic[2:0]{
-    OBI_XBAR_SPATZ_CTRL_IDX = 5
-    OBI_XBAR_EVENT_UNIT_IDX = 4
+    OBI_XBAR_SPATZ_CTRL_IDX = 5,
+    OBI_XBAR_EVENT_UNIT_IDX = 4,
     OBI_XBAR_STACK_IDX      = 3,
     OBI_XBAR_RESERVED_IDX   = 2,
     OBI_XBAR_L1SPM_IDX      = 1,
@@ -611,7 +608,7 @@ package magia_tile_pkg;
   } obi_mem_array_idx_e;
 `else
   typedef enum logic[3:0]{
-    OBI_XBAR_SPATZ_CTRL_IDX   = 8
+    OBI_XBAR_SPATZ_CTRL_IDX   = 8,
     OBI_XBAR_EVENT_UNIT_IDX   = 7,
     OBI_XBAR_STACK_IDX        = 6,
     OBI_XBAR_RESERVED_IDX     = 5,
