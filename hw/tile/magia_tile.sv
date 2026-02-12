@@ -1158,6 +1158,9 @@ module magia_tile
       .mgr_port_rsp_i ( obi_xbar_slv_cut_rsp[i] )
     );
   end
+
+  assign obi_xbar_slv_cut_req[magia_tile_pkg::OBI_CORE_IDX]  = obi_xbar_slv_req[magia_tile_pkg::OBI_CORE_IDX];
+  assign obi_xbar_slv_rsp[magia_tile_pkg::OBI_CORE_IDX]      = obi_xbar_slv_cut_rsp[magia_tile_pkg::OBI_CORE_IDX];
   
   obi_xbar #(
     .SbrPortObiCfg      ( magia_tile_pkg::obi_amo_cfg            ),
@@ -1734,8 +1737,8 @@ module magia_tile
     .obi_req_i ( core_mem_data_req[3]                 ),  
     .obi_rsp_o ( core_mem_data_rsp[3]                 ),
      `else
-    .obi_req_i ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_SPATZ_CTRL_IDX]                  ),  
-    .obi_rsp_o ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_SPATZ_CTRL_IDX]                  ),
+    .obi_req_i ( core_mem_data_req[6]                  ),  
+    .obi_rsp_o ( core_mem_data_rsp[6]                  ),
     `endif
     .clk_en_o  ( spatz_clk_en                          ),  
     .start_o   ( spatz_start                           ),  
@@ -1807,8 +1810,8 @@ module magia_tile
     .obi_req_i ( core_mem_data_req[2]                ),  
     .obi_rsp_o ( core_mem_data_rsp[2]                )
      `else
-    .obi_req_i ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_EVENT_UNIT_IDX ]                  ),  
-    .obi_rsp_o ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_EVENT_UNIT_IDX ]                  )
+    .obi_req_i ( core_mem_data_req[5]                  ),  
+    .obi_rsp_o ( core_mem_data_rsp[5]                  )
     `endif                      
   );
 
