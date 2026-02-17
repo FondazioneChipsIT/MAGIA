@@ -49,8 +49,8 @@ int main(void) {
     printf("\n[CV32] Launching SPATZ Task\n");
     spatz_run_task(HELLO_WORLD_SIMPLE_TASK);
 
-    eu_wait_spatz_wfe(EU_SPATZ_DONE_MASK);
-    
+    //eu_wait_spatz_wfe(EU_SPATZ_DONE_MASK);
+    eu_wait_spatz_polling(EU_SPATZ_DONE_MASK);
     if(spatz_get_exit_code() != 0) {
         printf("[CV32] SPATZ TASK ENDED with exit code: 0x%03x\n", spatz_get_exit_code());
         errors++;

@@ -35,6 +35,7 @@ typedef struct {
 int main(void) {
 
   eu_init();
+
   eu_enable_events(EU_SPATZ_DONE_MASK);
 
   // Write parameters in L1 - each tile uses its own L1 region with offset
@@ -52,7 +53,9 @@ int main(void) {
   
   // Wait for Spatz completion using WFE
   printf("Waiting for Spatz completion...\n");
-  eu_wait_spatz_wfe(EU_SPATZ_DONE_MASK);
+  //eu_wait_spatz_wfe(EU_SPATZ_DONE_MASK);
+  eu_wait_spatz_polling(EU_SPATZ_DONE_MASK);
+
 
   printf("Spatz task completed successfully!\n");
 

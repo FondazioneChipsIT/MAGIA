@@ -386,11 +386,12 @@ module magia_tile
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_REDMULE_CTRL_IDX] = '{idx: 32'd2, start_addr: tile_redmule_ctrl_start_addr,     end_addr: tile_redmule_ctrl_end_addr     };
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_IDMA_IDX]         = '{idx: 32'd3, start_addr: tile_idma_ctrl_start_addr,        end_addr: tile_idma_ctrl_end_addr        };
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_FSYNC_CTRL_IDX]   = '{idx: 32'd4, start_addr: tile_fsync_ctrl_start_addr,       end_addr: tile_fsync_ctrl_end_addr       };
-`endif
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_EVENT_UNIT_IDX]   = '{idx: 32'd5, start_addr: tile_event_unit_start_addr,       end_addr: tile_event_unit_end_addr       };
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_SPATZ_CTRL_IDX]   = '{idx: 32'd6, start_addr: tile_spatz_ctrl_start_addr,       end_addr: tile_spatz_ctrl_end_addr       };
-
-
+`else
+  assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_EVENT_UNIT_IDX]   = '{idx: 32'd2, start_addr: tile_event_unit_start_addr,       end_addr: tile_event_unit_end_addr       };
+  assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_SPATZ_CTRL_IDX]   = '{idx: 32'd3, start_addr: tile_spatz_ctrl_start_addr,       end_addr: tile_spatz_ctrl_end_addr       };
+`endif
 
   assign axi_xbar_rule[magia_tile_pkg::AXI_XBAR_L2_IDX]       = '{idx: 32'd0, start_addr: magia_tile_pkg::L2_ADDR_START, end_addr: magia_tile_pkg::L2_ADDR_END };
   assign axi_xbar_rule[magia_tile_pkg::AXI_XBAR_L1SPM_IDX]    = '{idx: 32'd1, start_addr: tile_l1_start_addr,            end_addr: tile_l1_end_addr            };
@@ -694,6 +695,7 @@ module magia_tile
   );
 
 `ifndef CV32E40X
+
   // RedMule controller OBI-to-HWPE control interface
   obi2hwpe_ctrl obi2hwpe_ctrl_inst (
     .obi_req_i  ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_REDMULE_CTRL_IDX] ),     
@@ -1720,7 +1722,7 @@ module magia_tile
 /*******************************************************/
 
   // Event array assignments for proper 2D array structure
-  assign acc_events_array[0]   = {redmule_evt[0][1], redmule_evt[0][0], redmule_busy, 1'b0};
+  assign acc_events_array[0]   = {redmule_evt[0][1], redmule_evt[0][0], redmule_busy, spatz_done};
   assign dma_events_array[0]   = {idma_obi2axi_done, idma_axi2obi_done};
   assign timer_events_array[0] = 2'b00;
   assign other_events_array[0] = {idma_obi2axi_busy, idma_axi2obi_busy, idma_obi2axi_start, idma_axi2obi_start, idma_obi2axi_error, idma_axi2obi_error, fsync_error, fsync_done, 24'b0};  // iDMA status events [31:28]|idma_obi2axi_error, idma_axi2obi_error, iDMA error events [27:26]|fsync_error, fsync_done, Fsync events [25:24], Reserved [23:0] - SW events are INTERNAL to Event Unit!
