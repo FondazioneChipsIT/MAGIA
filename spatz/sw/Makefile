@@ -16,7 +16,7 @@
 # Authors: Luca Balboni <luca.balboni10@studio.unibo.it>
 # Spatz Programs Makefile for MAGIA Tile
 
-LLVM_PATH := /opt/riscv/spatz-14-llvm
+LLVM_PATH ?= /opt/riscv/spatz-14-llvm
 
 
 # Configuration from top-level Makefile

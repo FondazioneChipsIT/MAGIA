@@ -59,8 +59,7 @@ sources:
       # MAGIA Packages
       - hw/mesh/magia_pkg.sv
       - hw/tile/magia_tile_pkg.sv
-      # MAGIA Tile
-      - hw/include/xbar_periph_bus_if.sv         
+      # MAGIA Tile      
       - hw/tile/cluster_event_map.sv             
       - hw/tile/magia_event_unit.sv              
       - hw/tile/eu_direct_cut.sv
