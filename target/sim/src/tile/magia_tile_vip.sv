@@ -23,7 +23,7 @@ module magia_tile_vip
   import magia_tile_pkg::*;
   import magia_pkg::*;
   import magia_tile_tb_pkg::*;
-  import floo_axi_mesh_1x2_noc_pkg::*;
+  import magia_tile_noc_pkg::*;
 #(
   // Timing
   parameter time         CLK_PERIOD = 5ns,
@@ -165,6 +165,7 @@ module magia_tile_vip
   endtask: wait_for_reset
 
   task automatic init(input bit[31:0] entry_addr);
+    i_l2_mem.i_l2_mem.mem[32'hCCFF_0001] = 0;
     irq          = '0;
     fetch_enable = 1'b0;
     boot_addr    = entry_addr;
@@ -177,9 +178,13 @@ module magia_tile_vip
   endtask: elf_run
 
   task automatic wait_for_eoc(output bit[31:0] exit_code);
-    while ({i_l2_mem.i_l2_mem.mem[32'hCC03_0001][3]} == 0)
+    bit eoc = 1'b0;
+    do begin
+      if (i_l2_mem.i_l2_mem.mem[32'hCCFF_0001][3] == 1'b1)
+        eoc = 1'b1;
       #10000;
-    if({i_l2_mem.i_l2_mem.mem[32'hCC03_0001], i_l2_mem.i_l2_mem.mem[32'hCC03_0000]} != 16'h800)
+    end while (eoc == 1'b0);
+    if({i_l2_mem.i_l2_mem.mem[32'hCCFF_0001], i_l2_mem.i_l2_mem.mem[32'hCCFF_0000]} != 16'h800)
       exit_code = 32'd1;
     else
       exit_code = 32'd0;
@@ -216,21 +221,21 @@ int errors = -1;
 bit stdio_ready  = 0;
 bit stderr_ready = 0;
 always @(posedge clk) begin: print_monitor
-  if ((i_magia_tile.axi_xbar_data_out_req.aw.addr == 32'hFFFF0000) && (i_magia_tile.axi_xbar_data_out_req.aw_valid)) stderr_ready = 1'b1;
-  if ((i_magia_tile.axi_xbar_data_out_req.aw.addr == 32'hFFFF0004) && (i_magia_tile.axi_xbar_data_out_req.aw_valid)) stdio_ready  = 1'b1;
-  if ((i_magia_tile.axi_xbar_data_out_req.w_valid) && stderr_ready) begin
+  if ((i_magia_tile.i_axi_xbar.mst_ports_req_o[0].aw.addr == 32'hFFFF0000) && (i_magia_tile.i_axi_xbar.mst_ports_req_o[0].aw_valid)) stderr_ready = 1'b1;
+  if ((i_magia_tile.i_axi_xbar.mst_ports_req_o[0].aw.addr == 32'hFFFF0004) && (i_magia_tile.i_axi_xbar.mst_ports_req_o[0].aw_valid)) stdio_ready  = 1'b1;
+  if ((i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w_valid) && stderr_ready) begin
     // NOTE: This is stupid! But unless we keep track of the outstanding AXI writes (which would require some logic) this should work,
     //       unless other modules (not related to the print function) transfer bytes (instead of words) to the L2
-    if (i_magia_tile.axi_xbar_data_out_req.w.data < 256 && i_magia_tile.axi_xbar_data_out_req.w.data > 0) begin
-      errors       = i_magia_tile.axi_xbar_data_out_req.w.data;
+    if (i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w.data < 256 && i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w.data > 0) begin
+      errors       = i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w.data;
       stderr_ready = 1'b0;
     end
   end
-  if ((i_magia_tile.axi_xbar_data_out_req.w_valid) && stdio_ready) begin
+  if ((i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w_valid) && stdio_ready) begin
     // NOTE: This is stupid! But unless we keep track of the outstanding AXI writes (which would require some logic) this should work,
     //       unless other modules (not related to the print function) transfer bytes (instead of words) to the L2
-    if (i_magia_tile.axi_xbar_data_out_req.w.data < 256 && i_magia_tile.axi_xbar_data_out_req.w.data > 0) begin
-      $write("%c", i_magia_tile.axi_xbar_data_out_req.w.data);
+    if (i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w.data < 256 && i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w.data > 0) begin
+      $write("%c", i_magia_tile.i_axi_xbar.mst_ports_req_o[0].w.data);
       stdio_ready = 1'b0;
     end
   end
