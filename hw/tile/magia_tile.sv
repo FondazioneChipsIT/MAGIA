@@ -41,7 +41,7 @@ module magia_tile
 `ifndef TARGET_STANDALONE_TILE
   import magia_noc_pkg::*;
 `else
-  import floo_axi_nw_mesh_1x2_noc_pkg::*;
+  import magia_tile_noc_pkg::*;
 `endif
 #(
   // Parameters used by hci_interconnect and l1_spm
