@@ -53,11 +53,12 @@ sources:
     defines:
       CORE_TRACES: ~
     files:
-      # NoC
-      - target/sim/src/tile/floo_axi_nw_mesh_1x2_pkg.sv
       # MAGIA Packages
       - hw/mesh/magia_pkg.sv
       - hw/tile/magia_tile_pkg.sv
+      # NoC
+      - target/sim/src/tile/floo_axi_nw_mesh_1x2_pkg.sv
+      - hw/tile/noc/magia_tile_noc_pkg.sv
       # MAGIA Tile
       - hw/tile/converters/data2obi.sv
       - hw/tile/converters/obi2data.sv
