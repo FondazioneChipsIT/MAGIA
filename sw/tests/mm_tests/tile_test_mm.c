@@ -14,14 +14,15 @@
  * limitations under the License.
  * SPDX-License-Identifier: Apache-2.0
  *
- * Authors: Victor Isachi <victor.isachi@unibo.it>
+ * Authors: Luca Balboni <luca.balboni10@studio.unibo.it>
+ *          Based on tile_test.c by Victor Isachi
  * 
- * MAGIA Tile Test
+ * MAGIA Tile Test - Memory Mapped Version
  */
 
 #include "magia_tile_utils.h"
-#include "redmule_isa_utils.h"
-#include "idma_isa_utils.h"
+#include "redmule_mm_utils.h"
+#include "idma_mm_utils.h"
 
 #include "x_input.h"
 #include "w_input.h"
@@ -47,29 +48,14 @@
 
 #define CONCURRENT
 
-#define IRQ_EN
 
 void idma_mv_in(unsigned int x_dim, unsigned int y_dim, uint16_t src_data[], uint32_t dst_address){
   uint32_t dst_addr;
   uint32_t src_addr;
   uint32_t len;
 
-  uint32_t dst_std_2;
-  uint32_t src_std_2;
-  uint32_t reps_2;
-
-  uint32_t dst_std_3;
-  uint32_t src_std_3;
-  uint32_t reps_3;
-
-#ifdef IRQ_EN
-  irq_en(1<<IRQ_A2O_DONE);
-#endif
-
   for (int i = 0; i < x_dim*y_dim; i++)
     mmio16(T_BASE + 2*i) = src_data[i];
-
-  idma_conf_in();
 
   dst_addr = (uint32_t)dst_address;
   src_addr = (uint32_t)T_BASE;
@@ -79,36 +65,10 @@ void idma_mv_in(unsigned int x_dim, unsigned int y_dim, uint16_t src_data[], uin
   printf("src_addr: 0x%8x\n", src_addr);
   printf("len: %0d\n", len);
 #endif
-  idma_set_addr_len_in(dst_addr, src_addr, len);
 
-  dst_std_2 = 0;
-  src_std_2 = 0;
-  reps_2    = 1;
-#if VERBOSE > 100
-  printf("dst_std_2: 0x%8x\n", dst_std_2);
-  printf("src_std_2: 0x%8x\n", src_std_2);
-  printf("reps_2: 0x%8x\n", reps_2);
-#endif
-  idma_set_std2_rep2_in(dst_std_2, src_std_2, reps_2);
+  uint32_t transfer_id = idma_L2ToL1(src_addr, dst_addr, len);
 
-  dst_std_3 = 0;
-  src_std_3 = 0;
-  reps_3    = 1;
-#if VERBOSE > 100
-  printf("dst_std_3: 0x%8x\n", dst_std_3);
-  printf("src_std_3: 0x%8x\n", src_std_3);
-  printf("reps_3: 0x%8x\n", reps_3);
-#endif
-  idma_set_std3_rep3_in(dst_std_3, src_std_3, reps_3);
-
-  idma_start_in();
-
-#ifdef IRQ_EN
-  asm volatile("wfi" ::: "memory");
-  printf("Detected IRQ...\n");
-#else
-  wait_print(WAIT_CYCLES);
-#endif
+  dma_wait(transfer_id);
 
 #if VERBOSE > 100
   for (int i = 0; i < x_dim*y_dim; i++)
@@ -133,20 +93,6 @@ void idma_mv_out(unsigned int x_dim, unsigned int y_dim, uint32_t src_address, u
   uint32_t src_addr;
   uint32_t len;
 
-  uint32_t dst_std_2;
-  uint32_t src_std_2;
-  uint32_t reps_2;
-
-  uint32_t dst_std_3;
-  uint32_t src_std_3;
-  uint32_t reps_3;
-
-#ifdef IRQ_EN
-  irq_en(1<<IRQ_O2A_DONE);
-#endif
-
-  idma_conf_out();
-
   dst_addr = (uint32_t)dst_address;
   src_addr = (uint32_t)src_address;
   len      = (uint32_t)(x_dim*y_dim*2); // 2 Bytes per element
@@ -155,36 +101,10 @@ void idma_mv_out(unsigned int x_dim, unsigned int y_dim, uint32_t src_address, u
   printf("src_addr: 0x%8x\n", src_addr);
   printf("len: %0d\n", len);
 #endif
-  idma_set_addr_len_out(dst_addr, src_addr, len);
 
-  dst_std_2 = 0;
-  src_std_2 = 0;
-  reps_2    = 1;
-#if VERBOSE > 100
-  printf("dst_std_2: 0x%8x\n", dst_std_2);
-  printf("src_std_2: 0x%8x\n", src_std_2);
-  printf("reps_2: 0x%8x\n", reps_2);
-#endif
-  idma_set_std2_rep2_out(dst_std_2, src_std_2, reps_2);
+  uint32_t transfer_id = idma_L1ToL2(src_addr, dst_addr, len);
 
-  dst_std_3 = 0;
-  src_std_3 = 0;
-  reps_3    = 1;
-#if VERBOSE > 100
-  printf("dst_std_3: 0x%8x\n", dst_std_3);
-  printf("src_std_3: 0x%8x\n", src_std_3);
-  printf("reps_3: 0x%8x\n", reps_3);
-#endif
-  idma_set_std3_rep3_out(dst_std_3, src_std_3, reps_3);
-
-  idma_start_out();
-
-#ifdef IRQ_EN
-  asm volatile("wfi" ::: "memory");
-  printf("Detected IRQ...\n");
-#else
-  wait_print(WAIT_CYCLES);
-#endif
+  dma_wait(transfer_id);
 
 #if VERBOSE > 100
   for (int i = 0; i < x_dim*y_dim; i++)
@@ -232,23 +152,22 @@ int main(void) {
   printf("N_SIZE: %4x\n", N_SIZE);  
 #endif
 
-  redmule_mcnfig(K_SIZE, M_SIZE, N_SIZE);
+  // Initialize and configure RedMulE using MM approach
+  hwpe_cg_enable();
+  hwpe_soft_clear();
 
-  redmule_marith(Y_BASE, W_BASE, X_BASE);
+  int offload_id_tmp;
+  while ((offload_id_tmp = hwpe_acquire_job()) < 0)
+    ;
 
-#ifdef IRQ_EN
-  irq_en(1<<IRQ_REDMULE_EVT_0);
-#endif
+  redmule_cfg((unsigned int)X_BASE, (unsigned int)W_BASE, (unsigned int)Y_BASE, 
+              M_SIZE, N_SIZE, K_SIZE, (uint8_t)gemm_ops, (uint8_t)Float16);
 
   printf("Testing matrix multiplication with RedMulE...\n");
+  hwpe_trigger_job();
 
-#ifdef IRQ_EN
-  // Wait for end of computation
-  asm volatile("wfi" ::: "memory");
-  printf("Detected IRQ...\n");
-#else
-  wait_print(WAIT_CYCLES);
-#endif
+  // Wait for HWPE completion
+  hwpe_wait_for_completion();
 
   printf("Moving results through iDMA...\n");
   idma_mv_out(M_SIZE, K_SIZE, Y_BASE, V_BASE);

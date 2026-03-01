@@ -136,20 +136,24 @@ module magia_vip
     bit eoc = 1'b0;
     int tile_cnt;
     int error = 0;
+    for (int i = 0; i < magia_tb_pkg::N_TILES; i++) begin
+      i_l2_mem.i_l2_mem.mem[32'hCCFF_0000 + 2*i]   = 8'h00;
+      i_l2_mem.i_l2_mem.mem[32'hCCFF_0000 + 2*i+1] = 8'h00;
+    end
 
     do begin
       tile_cnt = 0;
       //eoc = 1'b1;
       for (int i = 0; i < magia_tb_pkg::N_TILES; i++)
-        if (i_l2_mem.i_l2_mem.mem[32'hCC03_0000 + 2*i+1][3] == 1'b1)
+        if (i_l2_mem.i_l2_mem.mem[32'hCCFF_0000 + 2*i+1][3] == 1'b1)
           tile_cnt++;
       #10000;
     end while(tile_cnt<magia_tb_pkg::N_TILES);
     
     if(tile_cnt == magia_tb_pkg::N_TILES) begin
       for (int i = 0; i < magia_tb_pkg::N_TILES; i++) begin
-        if({i_l2_mem.i_l2_mem.mem[32'hCC03_0000 + 2*i+1],i_l2_mem.i_l2_mem.mem[32'hCC03_0000 + 2*i]} != 16'h800) begin
-            $display("TILE[%d] ERRORS: %d", i, {i_l2_mem.i_l2_mem.mem[32'hCC03_0000 + 2*i+1],i_l2_mem.i_l2_mem.mem[32'hCC03_0000 + 2*i]}[10:0]);
+        if({i_l2_mem.i_l2_mem.mem[32'hCCFF_0000 + 2*i+1],i_l2_mem.i_l2_mem.mem[32'hCCFF_0000 + 2*i]} != 16'h800) begin
+            $display("TILE[%d] ERRORS: %d", i, {i_l2_mem.i_l2_mem.mem[32'hCCFF_0000 + 2*i+1],i_l2_mem.i_l2_mem.mem[32'hCCFF_0000 + 2*i]}[10:0]);
             error++;
         end
       end
@@ -257,8 +261,12 @@ module magia_vip
   time last_start_id = 0, last_end_id = 0, sync_time_id;
   int unsigned completed_syncs_id = 0;
   for (genvar i = 0; i < magia_tb_pkg::N_TILES_Y; i++) begin: gen_tile_instr_monitor_y
-    for (genvar j = 0; j < magia_tb_pkg::N_TILES_X; j++) begin: gen_tile_instr_monitor_x 
+    for (genvar j = 0; j < magia_tb_pkg::N_TILES_X; j++) begin: gen_tile_instr_monitor_x
+`ifdef CV32E40X
       assign curr_instr_ex[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40x_core.core_i.id_stage_i.id_ex_pipe_o.instr.bus_resp.rdata;
+`else
+      assign curr_instr_ex[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40p_core.ex_valid ? i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40p_core.id_stage_i.instr_rdata_i : '0;
+`endif
       always @(curr_instr_ex[i*magia_tb_pkg::N_TILES_X+j]) begin: instr_ex_reporter
         if (curr_instr_ex[i*magia_tb_pkg::N_TILES_X+j] == 32'h50500013) 
           $display("[TB][mhartid %0d - Tile (%0d, %0d)] detected sentinel instruction in EX stage at time %0dns", i*magia_tb_pkg::N_TILES_X+j, i, j, time_var);
@@ -274,7 +282,11 @@ module magia_vip
           completed_syncs_ex++;
         end
       end
+`ifdef CV32E40X
       assign curr_instr_id[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40x_core.core_i.id_stage_i.if_id_pipe_i.instr.bus_resp.rdata;
+`else
+      assign curr_instr_id[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40p_core.id_stage_i.instr_rdata_i;
+`endif
       always @(curr_instr_id[i*magia_tb_pkg::N_TILES_X+j]) begin: instr_id_reporter
         if (curr_instr_id[i*magia_tb_pkg::N_TILES_X+j] == 32'h40400013) 
           $display("[TB][mhartid %0d - Tile (%0d, %0d)] detected sentinel instruction in ID stage at time %0dns", i*magia_tb_pkg::N_TILES_X+j, i, j, time_var);
@@ -320,8 +332,13 @@ module magia_vip
   int unsigned sync_iteration = 0;
   for (genvar i = 0; i < magia_tb_pkg::N_TILES_Y; i++) begin: gen_tile_instr_monitor_y
     for (genvar j = 0; j < magia_tb_pkg::N_TILES_X; j++) begin: gen_tile_instr_monitor_x 
+`ifdef CV32E40X
       assign curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40x_core.core_i.wb_stage_i.ex_wb_pipe_i.instr_valid ?
       i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40x_core.core_i.wb_stage_i.ex_wb_pipe_i.instr.bus_resp.rdata : '0;
+`else
+      assign curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40p_core.wb_valid ?
+      i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40p_core.regfile_wdata : '0;
+`endif
       always @(curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j]) begin: instr_wb_reporter
         if (curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j] == 32'h5AA00013) begin
           start_sentinel[i*magia_tb_pkg::N_TILES_X+j].push_back($time);
@@ -475,8 +492,13 @@ module magia_vip
   time sentinel_latency[magia_tb_pkg::N_TILES];
   for (genvar i = 0; i < magia_tb_pkg::N_TILES_Y; i++) begin: gen_tile_instr_monitor_y
     for (genvar j = 0; j < magia_tb_pkg::N_TILES_X; j++) begin: gen_tile_instr_monitor_x 
+`ifdef CV32E40X
       assign curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40x_core.core_i.wb_stage_i.ex_wb_pipe_i.instr_valid ?
       i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40x_core.core_i.wb_stage_i.ex_wb_pipe_i.instr.bus_resp.rdata : '0;
+`else
+      assign curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j] = i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40p_core.wb_valid ?
+      i_magia.gen_y_tile[i].gen_x_tile[j].i_magia_tile.i_cv32e40p_core.regfile_wdata : '0;
+`endif
       always @(curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j]) begin: instr_wb_reporter
         if (curr_instr_wb[i*magia_tb_pkg::N_TILES_X+j] == 32'h5AA00013) begin
           start_sentinel[i*magia_tb_pkg::N_TILES_X+j].push_back($time);

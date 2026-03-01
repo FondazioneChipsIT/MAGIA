@@ -20,6 +20,11 @@
  
 
 # Paths to folders
+ROOT_DIR       := $(abspath $(dir $(lastword $(MAKEFILE_LIST))))
+core           ?= CV32E40X
+
+MAGIA_DIR  ?= $(shell pwd)
+
 SW             ?= sw
 BUILD_DIR      ?= sim/work
 ifneq (,$(wildcard /etc/iis.version))
@@ -33,7 +38,11 @@ BENDER_DIR     ?= .
 ISA            ?= riscv
 ARCH           ?= rv
 XLEN           ?= 32
-XTEN           ?= imafc
+ifeq ($(core), CV32E40X)
+  XTEN         = imafc
+else
+  XTEN         = imfcxpulpv2
+endif
 ABI            ?= ilp
 XABI           ?= f
 
@@ -85,10 +94,15 @@ ifeq ($(debug),1)
 	FLAGS += -DDEBUG
 endif
 
+ifeq ($(core), CV32E40X)
+  FLAGS += -DCV32E40X
+endif
+
 # Include directories
 INC += -Isw
 INC += -Isw/inc
 INC += -Isw/utils
+INC += -Ispatz/sw/headers_bin
 
 BOOTSCRIPT := sw/kernel/crt0.S
 LINKSCRIPT := sw/kernel/link.ld
@@ -98,6 +112,13 @@ LD=$(CC)
 OBJDUMP=$(ISA)$(XLEN)-unknown-elf-objdump
 CC_OPTS=-march=$(ARCH)$(XLEN)$(XTEN) -mabi=$(ABI)$(XLEN)$(XABI) -D__$(ISA)__ -O2 -g -Wextra -Wall -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wundef -fdata-sections -ffunction-sections -MMD -MP
 LD_OPTS=-march=$(ARCH)$(XLEN)$(XTEN) -mabi=$(ABI)$(XLEN)$(XABI) -D__$(ISA)__ -MMD -MP -nostartfiles -nostdlib -Wl,--gc-sections
+
+# Spatz embedded binary support (via header)
+SPATZ_SW_DIR   := spatz/sw
+
+# Auto-detect which Spatz tasks are used by looking for *_TASK symbols in CV32 code
+# Example: HELLO_WORLD_TASK → hello_world_task
+SPATZ_TASKS := $(shell grep -oP '\b(?!SPATZ_)[A-Z][A-Z0-9_]*_TASK\b' $(TEST_SRCS) 2>/dev/null | tr '[:upper:]' '[:lower:]' | awk '!seen[$$0]++')
 
 # Setup build object dirs
 CRT=$(TEST_DIR)/$(test)/build/crt0.o
@@ -117,10 +138,26 @@ $(STIM_INSTR) $(STIM_DATA): $(BIN)
 	scripts/parse_s19.pl $(BIN).s19 > $(BIN).txt &&					\
 	python scripts/s19tomem.py $(BIN).txt $(STIM_INSTR) $(STIM_DATA)
 	cd $(TEST_DIR)/$(test) &&										\
-	ln -sfn ../../../$(INI_PATH) $(VSIM_INI) &&						\
-	ln -sfn ../../../$(WORK_PATH) $(VSIM_LIBS)
+	ln -sfn $(ROOT_DIR)/$(INI_PATH) $(VSIM_INI) &&						\
+	ln -sfn $(ROOT_DIR)/$(WORK_PATH) $(VSIM_LIBS)
+
+# Build Spatz binary with auto-detected tasks (only if tasks are used)
+# Generate test-specific header: test_name_task_bin.h
+.PHONY: spatz-header
+spatz-header:
+	@if [ -n "$(SPATZ_TASKS)" ]; then \
+		echo "[SPATZ] Auto-detected tasks: $(SPATZ_TASKS)"; \
+		$(MAKE) -C $(SPATZ_SW_DIR) task="$(SPATZ_TASKS)" TEST_NAME=$(test) SPATZ_RVD=$(SPATZ_RVD) SPATZ_VLEN=$(SPATZ_VLEN) SPATZ_N_IPU=$(SPATZ_N_IPU) SPATZ_N_FPU=$(SPATZ_N_FPU) SPATZ_XDIVSQRT=$(SPATZ_XDIVSQRT) SPATZ_XDMA=$(SPATZ_XDMA) SPATZ_RVF=$(SPATZ_RVF) SPATZ_RVV=$(SPATZ_RVV) all; \
+	else \
+		echo "[SPATZ] No Spatz tasks detected - skipping Spatz compilation"; \
+	fi
 
 $(BIN): $(CRT) $(OBJ)
+	@if [ -n "$(SPATZ_TASKS)" ]; then \
+		echo "[CV32-LINK] Linking with embedded Spatz binary (tasks: $(SPATZ_TASKS))"; \
+	else \
+		echo "[CV32-LINK] Linking without Spatz binary"; \
+	fi
 	$(LD) $(LD_OPTS) -o $(BIN) $(CRT) $(OBJ) -T$(LINKSCRIPT)
 
 $(CRT):
@@ -129,6 +166,11 @@ $(CRT):
 	cd $(test) &&								\
 	mkdir -p build								
 	$(CC) $(CC_OPTS) -c $(BOOTSCRIPT) -o $(CRT)
+
+# Compile CV32 test (depends on spatz-header only if tasks detected)
+ifneq ($(SPATZ_TASKS),)
+$(OBJ): spatz-header
+endif
 
 $(OBJ):
 	cd $(TEST_DIR) &&											\
@@ -202,14 +244,27 @@ include bender_sim.mk
 include bender_synth.mk
 include bender_profile.mk
 
-bender_defs += -D COREV_ASSERT_OFF
+ifeq ($(core), CV32E40X)
+  bender_defs += -D COREV_ASSERT_OFF
+endif
+
+ifeq ($(core), CV32E40X)
+  bender_defs += -D CV32E40X
+else ifeq ($(core), CV32E40P)
+  bender_defs += -D CV32E40P
+else
+  $(error Detected unsupported core, must choose among CV32E40X and CV32E40P)
+endif
 
 bender_targs += -t rtl
 bender_targs += -t test
-bender_targs += -t cv32e40p_exclude_tracer
+bender_targs += -t cv32e40p_include_tracer
+
+
 # Targets needed to avoid error even though the module is not used
 bender_targs += -t snitch_cluster
 bender_targs += -t idma_test
+bender_targs += -t spatz          # Include Spatz CC files
 
 #ifeq ($(REDMULE_COMPLEX),1)
 #	tb := redmule_complex_tb
@@ -226,9 +281,41 @@ ifeq ($(mesh_dv),1)
 else
 	tb         := magia_tile_tb
 endif
-WAVES        := ./wave.do
-bender_targs += -t redmule_complex
-bender_targs += -t cv32e40x_bhv
+WAVES        := $(mkfile_path)/wave.do
+
+ifeq ($(core), CV32E40X)
+  bender_targs += -t redmule_complex
+  bender_targs += -t cv32e40x_bhv
+else
+  bender_targs += -t redmule_hwpe
+endif
+
+
+# Define for Spatz target
+bender_defs  += -D TARGET_SPATZ
+SPATZ_RVD      ?= 0   # 0: 32-bit TCDM (ELEN=32), 1: 64-bit TCDM (ELEN=64)
+SPATZ_VLEN     ?= 256 # Vector length in bits (128, 256, 512, ...)
+SPATZ_NRVREG   ?= 32  # Number of vector registers (RISC-V standard=32)
+SPATZ_NR_VRF_BANKS ?= 4  # Number of VRF banks (banking parallelism: 2, 4, 8)
+SPATZ_N_IPU    ?= 1   # Number of Integer Processing Units (1-8)
+SPATZ_N_FPU    ?= 4   # Number of Floating Point Units (1-8)
+SPATZ_NR_PARALLEL_INSTR ?= 4  # Number of parallel vector instructions (scoreboard depth)
+SPATZ_XDIVSQRT ?= 0   # 0: FP div/sqrt disabled, 1: enabled (increases area)
+SPATZ_XDMA     ?= 0   # 0: DMA disabled, 1: enabled
+SPATZ_RVF      ?= 1   # 0: single-precision FP disabled, 1: enabled
+SPATZ_RVV      ?= 1   # 0: vector extension disabled, 1: enabled
+bender_defs    += -D SPATZ_RVD=$(SPATZ_RVD)
+bender_defs    += -D SPATZ_VLEN=$(SPATZ_VLEN)
+bender_defs    += -D SPATZ_NRVREG=$(SPATZ_NRVREG)
+bender_defs    += -D SPATZ_NR_VRF_BANKS=$(SPATZ_NR_VRF_BANKS)
+bender_defs    += -D SPATZ_N_IPU=$(SPATZ_N_IPU)
+bender_defs    += -D SPATZ_N_FPU=$(SPATZ_N_FPU)
+bender_defs    += -D SPATZ_NR_PARALLEL_INSTR=$(SPATZ_NR_PARALLEL_INSTR)
+bender_defs    += -D SPATZ_XDIVSQRT=$(SPATZ_XDIVSQRT)
+bender_defs    += -D SPATZ_XDMA=$(SPATZ_XDMA)
+bender_defs    += -D SPATZ_RVF=$(SPATZ_RVF)
+bender_defs    += -D SPATZ_RVV=$(SPATZ_RVV)
+
 
 update-ips:
 	$(BENDER) update
@@ -281,6 +368,10 @@ clean-sdk:
 
 clean:
 	rm -rf $(TEST_DIR)/$(test)
+	@if [ -d "$(SPATZ_SW_DIR)" ]; then \
+		echo "[CLEAN] Cleaning Spatz..."; \
+		$(MAKE) -C $(SPATZ_SW_DIR) clean; \
+	fi
 
 dis:
 	$(OBJDUMP) -d -S $(BIN) > $(DUMP)
@@ -341,6 +432,10 @@ MAGIA_NONFREE_DIR ?= nonfree
 MAGIA_NONFREE_COMMIT ?= main
 
 .PHONY: magia-nonfree-init
+MAGIA_NONFREE_DEPS ?= 1
 magia-nonfree-init:
 	git clone $(MAGIA_NONFREE_REMOTE) $(MAGIA_NONFREE_DIR)
 	cd $(MAGIA_NONFREE_DIR) && git checkout $(MAGIA_NONFREE_COMMIT)
+	if [ "$(MAGIA_NONFREE_DEPS)" -eq "1" ]; then $(MAKE) nonfree-init-dep ; fi 
+
+-include $(MAGIA_NONFREE_DIR)/nonfree.mk
