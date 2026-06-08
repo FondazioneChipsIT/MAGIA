@@ -43,15 +43,16 @@ package magia_pkg;
   localparam int unsigned IRQ_ID_W         = $clog2(N_IRQ);                   // IRQ ID Width
   localparam int unsigned ID_W_OFFSET      = 1;                               // Offset to be added to ID Width
   localparam int unsigned ID_W             = 1;                               // Default ID Width
-  localparam int unsigned USR_W            = 1;                               // Default User Width
+  localparam int unsigned COLLECTIVE_OP_W  = 4;                               // Collective operation encoding (0: Unicast, 1: Multicast)
+  localparam int unsigned USR_W            = ADDR_W+COLLECTIVE_OP_W;          // The User Width encodes the collective operation
 
   // Parameters used by the NoC
-  parameter int unsigned AXI_NOC_ID_W      = 4;                                // AXI NoC ID Width: matches slave side id_width (4 bits)
+  parameter int unsigned AXI_NOC_ID_W      = 4;                                // AXI NoC ID Width: 2 bits on slave port + 2 bits to select from i$, iDMA and core data
   parameter int unsigned AXI_NOC_U_W       = USR_W;
 
   // Parameters used by the L2
-  parameter int unsigned L2_ID_W           = 2;                                // The ID Width reflects the slave ID Width of the Tile AXI XBAR (for 4 ports: log2(4)=2)
-  parameter int unsigned L2_U_W            = 1;
+  parameter int unsigned L2_ID_W           = 2;                                // The ID Width reflects the ID Width of the Tile AXI XBAR
+  parameter int unsigned L2_U_W            = USR_W;
 
   // Parameter used for the Fractal Sync network
   parameter int unsigned FSYNC_LVL         = (N_TILES_X == N_TILES_Y) ? 
