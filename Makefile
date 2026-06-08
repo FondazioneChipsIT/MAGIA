@@ -424,6 +424,7 @@ else
 	@sed -i '/^  cv32e40p:$$/,/^  cv32e40x:/ { s|^    revision: .*|    revision: $(CV32E40P_REV)|; 			s|^      Git: .*|      Git: $(CV32E40P_GIT)|; 		}' Bender.lock
 endif
 	$(BENDER) update
+	$(MAKE) -C $(IDMA_ROOT) idma_hw_all IDMA_ADD_IDS=$(IDMA_ADD_IDS)
 	$(BENDER) script vsim          \
 	--vlog-arg="$(compile_flag)"   \
 	--vcom-arg="-pedanticerrors"   \
