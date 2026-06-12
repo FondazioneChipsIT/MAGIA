@@ -89,14 +89,55 @@ package floo_axi_nw_mesh_2x2_noc_pkg;
   } collective_sam_rule_t;
 
 
-  localparam collective_sam_rule_t[CollectiveSamNumRules-1:0] CollectiveSam = '{
-  '{idx: '{id: '{x: 0, y: 1, port_id: 0}, mask_x: '{ default: '0}, mask_y: '{ default: '0}}, start_addr: 32'he0000000, end_addr: 32'h100000000},// L21
-  '{idx: '{id: '{x: 0, y: 0, port_id: 0}, mask_x: '{ default: '0}, mask_y: '{ default: '0}}, start_addr: 32'hc0000000, end_addr: 32'he0000000},// L20
-  '{idx: '{id: '{x: 2, y: 1, port_id: 0}, mask_x: {offset : 21, len: 2, base_id: 1}, mask_y: {offset : 20, len: 1, base_id: 0}}, start_addr: 32'h00300000, end_addr: 32'h00400000},// MagiaTileX1Y1
-  '{idx: '{id: '{x: 2, y: 0, port_id: 0}, mask_x: {offset : 21, len: 2, base_id: 1}, mask_y: {offset : 20, len: 1, base_id: 0}}, start_addr: 32'h00200000, end_addr: 32'h00300000},// MagiaTileX1Y0
-  '{idx: '{id: '{x: 1, y: 1, port_id: 0}, mask_x: {offset : 21, len: 2, base_id: 1}, mask_y: {offset : 20, len: 1, base_id: 0}}, start_addr: 32'h00100000, end_addr: 32'h00200000},// MagiaTileX0Y1
-  '{idx: '{id: '{x: 1, y: 0, port_id: 0}, mask_x: {offset : 21, len: 2, base_id: 1}, mask_y: {offset : 20, len: 1, base_id: 0}}, start_addr: 32'h00000000, end_addr: 32'h00100000} // MagiaTileX0Y0
-  };
+localparam collective_sam_rule_t[CollectiveSamNumRules-1:0] CollectiveSam = '{
+'{    idx: '{    id: '{x: 0, y: 1, port_id: 0},
+    mask_x: '{    default: '0},
+    mask_y: '{    default: '0}},
+    start_addr: 32'he0000000,
+    end_addr: 32'h100000000},// L21
+'{    idx: '{    id: '{x: 0, y: 0, port_id: 0},
+    mask_x: '{    default: '0},
+    mask_y: '{    default: '0}},
+    start_addr: 32'hc0000000,
+    end_addr: 32'he0000000},// L20
+'{    idx: '{    id: '{x: 3, y: 1, port_id: 0},
+    mask_x: '{    offset: 21,
+    len: 2,
+    base_id: 2},
+    mask_y: '{    offset: 20,
+    len: 1,
+    base_id: 0}},
+    start_addr: 32'h00300000,
+    end_addr: 32'h00400000},// MagiaTileX1Y1
+'{    idx: '{    id: '{x: 3, y: 0, port_id: 0},
+    mask_x: '{    offset: 21,
+    len: 2,
+    base_id: 2},
+    mask_y: '{    offset: 20,
+    len: 1,
+    base_id: 0}},
+    start_addr: 32'h00200000,
+    end_addr: 32'h00300000},// MagiaTileX1Y0
+'{    idx: '{    id: '{x: 2, y: 1, port_id: 0},
+    mask_x: '{    offset: 21,
+    len: 2,
+    base_id: 2},
+    mask_y: '{    offset: 20,
+    len: 1,
+    base_id: 0}},
+    start_addr: 32'h00100000,
+    end_addr: 32'h00200000},// MagiaTileX0Y1
+'{    idx: '{    id: '{x: 2, y: 0, port_id: 0},
+    mask_x: '{    offset: 21,
+    len: 2,
+    base_id: 2},
+    mask_y: '{    offset: 20,
+    len: 1,
+    base_id: 0}},
+    start_addr: 32'h00000000,
+    end_addr: 32'h00100000} // MagiaTileX0Y0
+
+};
 
   localparam route_cfg_t RouteCfg = '{    RouteAlgo: XYRouting,
     UseIdTable: 1'b1,

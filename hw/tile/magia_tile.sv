@@ -462,7 +462,7 @@ module magia_tile
 
   assign en_default_mst_port = '1;
 
-  assign floo_id = '{x: (x_id_i+1), y: y_id_i, port_id: 0};
+  assign floo_id = '{x: x_id_i, y: y_id_i, port_id: 0};
 
   assign hci_clear = 1'b0;
   assign hci_ctrl  = '0;
@@ -1670,6 +1670,7 @@ module magia_tile
     .NumOutputs   ( 5                      ),
     .InFifoDepth  ( 2                      ),
     .OutFifoDepth ( 2                      ),
+    .NoLoopback   ( 1'b0                   ),
     .CollectiveCfg( RouteCfg.CollectiveCfg ),
     .id_t         ( id_t                   ),
     .hdr_t        ( hdr_t                  ),
