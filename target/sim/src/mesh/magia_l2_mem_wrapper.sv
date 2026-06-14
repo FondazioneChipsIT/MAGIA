@@ -112,6 +112,7 @@ module magia_l2_mem_wrapper
       .axi_narrow_in_rsp_t  ( axi_narrow_data_slv_rsp_t                ),
       .axi_narrow_out_req_t ( axi_narrow_data_mst_req_t                ),
       .axi_narrow_out_rsp_t ( axi_narrow_data_mst_rsp_t                ),
+      .user_narrow_struct_t ( collective_axi_narrow_data_slv_user_t      ),
       .axi_wide_in_req_t    ( collective_axi_wide_data_slv_req_t       ),
       .axi_wide_in_rsp_t    ( collective_axi_wide_data_slv_rsp_t       ),
       .axi_wide_out_req_t   ( collective_axi_wide_data_mst_req_t       ),

@@ -218,7 +218,7 @@ module magia
         .mtvec_addr_i                                                 ,
         .dm_halt_addr_i                                               ,
         .dm_exception_addr_i                                          ,
-        .mhartid_i           ( mhartid[i*N_TILES_X+j]                ),
+        .mhartid_i           ( mhartid[j*N_TILES_Y+i]                ),
         .mimpid_patch_i                                               ,
   
         .mcycle_o            ( mcycle_o[i*N_TILES_X+j]               ),

@@ -100,6 +100,7 @@ sources:
       - hw/tile/eu_direct_cut.sv
       - hw/tile/magia_redmule_wrap.sv
       - hw/tile/magia_tile.sv
+      - hw/tile/mcast_gen.sv
       # MAGIA DV
       - target/sim/src/tile/magia_tile_tb_pkg.sv
       - target/sim/src/mesh/magia_tb_pkg.sv
@@ -164,6 +165,7 @@ sources:
       - hw/tile/eu_direct_cut.sv
       - hw/tile/magia_redmule_wrap.sv
       - hw/tile/magia_tile.sv
+      - hw/tile/mcast_gen.sv
       # MAGIA
       - hw/mesh/magia.sv
       # MAGIA DV

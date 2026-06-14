@@ -181,6 +181,7 @@ module magia_tile
   magia_tile_pkg::core_hci_data_rsp_t core_l1_data_rsp;
 
   magia_tile_pkg::core_axi_data_req_t core_l2_data_req;
+  magia_tile_pkg::core_axi_data_req_t core_l2_data_req_unfiltered;
   magia_tile_pkg::core_axi_data_rsp_t core_l2_data_rsp;
 
   magia_tile_pkg::core_instr_req_t core_instr_req;
@@ -595,13 +596,20 @@ module magia_tile
     .obi_req_i           ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_L2_IDX] ),
     .obi_rsp_o           ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_L2_IDX] ),
     .user_i              ( axi_data_user                                      ),
-    .axi_req_o           ( core_l2_data_req                                   ),
+    .axi_req_o           ( core_l2_data_req_unfiltered                        ),
     .axi_rsp_i           ( core_l2_data_rsp                                   ),
     .axi_rsp_channel_sel (                                                    ),
     .axi_rsp_b_user_o    (                                                    ),
     .axi_rsp_r_user_o    (                                                    ),
     .obi_rsp_user_i      ( obi_rsp_data_user                                  )
   );
+
+
+  mcast_gen i_mcast_gen (
+    .data_req_i ( core_l2_data_req_unfiltered ),
+    .data_req_o ( core_l2_data_req )
+  );
+
 
   instr2cache_req i_core_instr2cache_req (
     .instr_req_i ( core_instr_req       ),
@@ -1739,10 +1747,11 @@ module magia_tile
     .mask_sel_t           ( collective_mask_sel_t                    ),
     .Sam                  ( CollectiveSam                            ),
     .user_wide_struct_t   ( collective_axi_wide_data_slv_user_t      ),
-    .axi_narrow_in_req_t  ( axi_narrow_data_slv_req_t                ),
-    .axi_narrow_in_rsp_t  ( axi_narrow_data_slv_rsp_t                ),
-    .axi_narrow_out_req_t ( axi_narrow_data_mst_req_t                ),
-    .axi_narrow_out_rsp_t ( axi_narrow_data_mst_rsp_t                ),
+    .user_narrow_struct_t ( collective_axi_narrow_data_slv_user_t    ),
+    .axi_narrow_in_req_t  ( collective_axi_narrow_data_slv_req_t     ),
+    .axi_narrow_in_rsp_t  ( collective_axi_narrow_data_slv_rsp_t     ),
+    .axi_narrow_out_req_t ( collective_axi_narrow_data_mst_req_t     ),
+    .axi_narrow_out_rsp_t ( collective_axi_narrow_data_mst_rsp_t     ),
     .axi_wide_in_req_t    ( collective_axi_wide_data_slv_req_t       ),
     .axi_wide_in_rsp_t    ( collective_axi_wide_data_slv_rsp_t       ),
     .axi_wide_out_req_t   ( collective_axi_wide_data_mst_req_t       ),
