@@ -139,29 +139,34 @@ localparam collective_sam_rule_t[CollectiveSamNumRules-1:0] CollectiveSam = '{
 
 };
 
-  localparam route_cfg_t RouteCfg = '{    RouteAlgo: XYRouting,
+  localparam route_cfg_t RouteCfg = '{    
+    RouteAlgo: XYRouting,
     UseIdTable: 1'b1,
     XYAddrOffsetX: 32,
     XYAddrOffsetY: 34,
     IdAddrOffset: 0,
     NumSamRules: 6,
     NumRoutes: 0,
-    CollectiveCfg: '{    OpCfg: '{    
-    EnNarrowMulticast: 1'b1,
-    EnWideMulticast: 1'b1,
-    EnLsbAnd: 1'b0,
-    EnFpAdd: 1'b0,
-    EnFpMul: 1'b0,
-    EnFpMin: 1'b0,
-    EnFpMax: 1'b0,
-    EnIntAdd: 1'b0,
-    EnIntMul: 1'b0,
-    EnIntMinS: 1'b0,
-    EnIntMinU: 1'b0,
-    EnIntMaxS: 1'b0,
-    EnIntMaxU: 1'b0},
-    NarrRedCfg: RedDefaultCfg,
-    WideRedCfg: RedDefaultCfg}};
+    CollectiveCfg: '{    
+      OpCfg: '{    
+        EnNarrowMulticast: 1'b1,
+        EnWideMulticast: 1'b1,
+        EnLsbAnd: 1'b1,
+        EnFpAdd: 1'b0,
+        EnFpMul: 1'b0,
+        EnFpMin: 1'b0,
+        EnFpMax: 1'b0,
+        EnIntAdd: 1'b0,
+        EnIntMul: 1'b0,
+        EnIntMinS: 1'b0,
+        EnIntMinU: 1'b0,
+        EnIntMaxS: 1'b0,
+        EnIntMaxU: 1'b0
+        },
+      NarrRedCfg: RedDefaultCfg,
+      WideRedCfg: RedDefaultCfg
+      }
+    };
 
 
 
