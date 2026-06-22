@@ -22,15 +22,12 @@
  */
 
 module mcast_gen
-  import magia_tile_pkg::*;
-  import idma_pkg::*;
+  import magia_noc_pkg::*;
 (
   input  magia_tile_pkg::core_axi_data_req_t data_req_i,
   output magia_tile_pkg::core_axi_data_req_t data_req_o
 );
 
-localparam logic[31:0] broad_mask = 32'h00300000;
-localparam logic[3:0] collective_op = 4'b0001;
 
 // w chan
 assign data_req_o.w = data_req_i.w;
@@ -55,6 +52,6 @@ assign data_req_o.aw.prot = data_req_i.aw.prot;
 assign data_req_o.aw.qos = data_req_i.aw.qos;
 assign data_req_o.aw.region = data_req_i.aw.region;
 assign data_req_o.aw.atop = data_req_i.aw.atop;
-assign data_req_o.aw.user = (data_req_i.aw.addr[31:28] == 4'hb) ? {broad_mask, collective_op} : '0;
+assign data_req_o.aw.user = (data_req_i.aw.addr[31:28] == 4'hb) ? {magia_noc_pkg::BroadcastMask, magia_noc_pkg::CollectiveOp} : '0;
 
 endmodule: mcast_gen
