@@ -66,9 +66,12 @@ package magia_tile_pkg;
   localparam logic [magia_pkg::ADDR_W-1:0] SPATZ_CTRL_ADDR_START   = EVENT_UNIT_ADDR_END;
   localparam logic [magia_pkg::ADDR_W-1:0] SPATZ_CTRL_SIZE         = 32'h0000_0100; 
   localparam logic [magia_pkg::ADDR_W-1:0] SPATZ_CTRL_ADDR_END     = SPATZ_CTRL_ADDR_START + SPATZ_CTRL_SIZE;
-  localparam logic [magia_pkg::ADDR_W-1:0] RESERVED_ADDR_START     = SPATZ_CTRL_ADDR_END;
+  localparam logic [magia_pkg::ADDR_W-1:0] COLL_CTRL_ADDR_START    = SPATZ_CTRL_ADDR_END;
+  localparam logic [magia_pkg::ADDR_W-1:0] COLL_CTRL_SIZE          = 32'h0000_0100; 
+  localparam logic [magia_pkg::ADDR_W-1:0] COLL_CTRL_ADDR_END      = COLL_CTRL_ADDR_START + COLL_CTRL_SIZE;
+  localparam logic [magia_pkg::ADDR_W-1:0] RESERVED_ADDR_START     = COLL_CTRL_ADDR_END;
   localparam logic [magia_pkg::ADDR_W-1:0] RESERVED_SIZE           = 32'h0000_E800;
-  localparam logic [magia_pkg::ADDR_W-1:0] RESERVED_ADDR_END       = RESERVED_ADDR_START + RESERVED_SIZE;
+  localparam logic [magia_pkg::ADDR_W-1:0] RESERVED_ADDR_END       = 32'h0000_FFFF;
   localparam logic [magia_pkg::ADDR_W-1:0] STACK_ADDR_START        = RESERVED_ADDR_END;
   localparam logic [magia_pkg::ADDR_W-1:0] STACK_SIZE              = 32'h0001_0000;
   localparam logic [magia_pkg::ADDR_W-1:0] STACK_ADDR_END          = STACK_ADDR_START + STACK_SIZE;
@@ -76,8 +79,8 @@ package magia_tile_pkg;
   localparam logic [magia_pkg::ADDR_W-1:0] L1_SIZE                 = 32'h000E_0000;
   localparam logic [magia_pkg::ADDR_W-1:0] L1_ADDR_END             = L1_ADDR_START + L1_SIZE;
   localparam logic [magia_pkg::ADDR_W-1:0] L1_TILE_OFFSET          = 32'h0010_0000;
-  localparam logic [magia_pkg::ADDR_W-1:0] L2_ADDR_START           = 32'hC000_0000;
-  localparam logic [magia_pkg::ADDR_W-1:0] L2_SIZE                 = 32'h4000_0000;
+  localparam logic [magia_pkg::ADDR_W-1:0] L2_ADDR_START           = 32'hB000_0000;
+  localparam logic [magia_pkg::ADDR_W-1:0] L2_SIZE                 = 32'h5000_0000;
   localparam logic [magia_pkg::ADDR_W-1:0] L2_ADDR_END             = L2_ADDR_START + L2_SIZE;
 
   // Instruction region for Spatz code (cacheable region)
@@ -320,14 +323,14 @@ package magia_tile_pkg;
 `ifdef CV32E40X
   parameter int unsigned N_SBR        = 4;                                              // Number of slaves (HCI, AXI XBAR, Event_Unit, Spatz_Ctrl)
 `else
-  parameter int unsigned N_SBR        = 7;                                              // Number of OBI slaves (HCI, AXI XBAR, RedMulE_Ctrl, iDMA_Ctrl, FSync_Ctrl, Event_Unit, Spatz_Ctrl)
+  parameter int unsigned N_SBR        = 8;                                              // Number of OBI slaves (HCI, AXI XBAR, RedMulE_Ctrl, iDMA_Ctrl, FSync_Ctrl, Event_Unit, Spatz_Ctrl, Coll_Ctrl)
 `endif  
   parameter int unsigned N_MGR        = 3;                                              // Number of masters (Core, AXI XBAR, Spatz CC)
   parameter int unsigned N_MAX_TRAN   = 1;                                              // Number of maximum outstanding transactions
 `ifdef CV32E40X
   parameter int unsigned N_ADDR_RULE  = 6;                                              // Number of address rules (L2, L1, Stack, Reserved, Event_Unit, Spatz_Ctrl)
 `else
-  parameter int unsigned N_ADDR_RULE  = 9;                                              // Number of OBI address rules (L2, L1, Stack, Reserved, RedMulE_Ctrl, iDMA_Ctrl, FSync_Ctrl, Event_Unit, Spatz_Ctrl)
+  parameter int unsigned N_ADDR_RULE  = 10;                                              // Number of OBI address rules (L2, L1, Stack, Reserved, RedMulE_Ctrl, iDMA_Ctrl, FSync_Ctrl, Event_Unit, Spatz_Ctrl)
 `endif  
   localparam int unsigned N_BIT_SBR   = $clog2(N_SBR);                                  // Number of bits required to identify each slave
 
@@ -617,8 +620,9 @@ package magia_tile_pkg;
   } obi_mem_array_idx_e;
 `else
   typedef enum logic[3:0]{
-    OBI_XBAR_STACK_IDX        = 8,
-    OBI_XBAR_RESERVED_IDX     = 7,
+    OBI_XBAR_STACK_IDX        = 9,
+    OBI_XBAR_RESERVED_IDX     = 8,
+    OBI_XBAR_COLL_CTRL_IDX    = 7,
     OBI_XBAR_SPATZ_CTRL_IDX   = 6,
     OBI_XBAR_EVENT_UNIT_IDX   = 5,
     OBI_XBAR_FSYNC_CTRL_IDX   = 4,
