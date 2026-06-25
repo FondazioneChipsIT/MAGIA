@@ -181,7 +181,6 @@ module magia_tile
   magia_tile_pkg::core_hci_data_rsp_t core_l1_data_rsp;
 
   magia_tile_pkg::core_axi_data_req_t core_l2_data_req;
-  magia_tile_pkg::core_axi_data_req_t core_l2_data_req_unfiltered;
   magia_tile_pkg::core_axi_data_rsp_t core_l2_data_rsp;
 
   magia_tile_pkg::core_instr_req_t core_instr_req;
@@ -240,6 +239,8 @@ module magia_tile
 
   magia_pkg::axi_xbar_mst_req_t[magia_tile_pkg::AxiXbarNoMstPorts-1:0] axi_xbar_mst_req;  // Index 1 -> ext, Index 0 -> OBI XBAR
   magia_pkg::axi_xbar_mst_rsp_t[magia_tile_pkg::AxiXbarNoMstPorts-1:0] axi_xbar_mst_rsp;  // Index 1 -> ext, Index 0 -> OBI XBAR
+
+  magia_pkg::axi_xbar_mst_req_t collective_filter;
 
   logic[magia_tile_pkg::axi_xbar_cfg.NoSlvPorts-1:0] en_default_mst_port;
   
@@ -416,9 +417,12 @@ module magia_tile
   magia_tile_pkg::core_axi_instr_rsp_t  spatz_icache_axi_rsp;
   logic spatz_start;
   logic spatz_done;
-  logic spatz_clk_en;     
-  logic spatz_clk;  
+  logic spatz_clk_en;
+  logic spatz_clk;
 
+ // Collective signals
+  logic[31:0] collective_mask;
+  logic[3:0] collective_op;
 
   // Cluster signals
   logic                                  [magia_tile_pkg::N_CLUSTER_CORES-1:0] cluster_clk;
@@ -493,6 +497,7 @@ module magia_tile
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_REDMULE_CTRL_IDX] = '{idx: 32'd2, start_addr: tile_redmule_ctrl_start_addr,     end_addr: tile_redmule_ctrl_end_addr     };
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_IDMA_IDX]         = '{idx: 32'd3, start_addr: tile_idma_ctrl_start_addr,        end_addr: tile_idma_ctrl_end_addr        };
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_FSYNC_CTRL_IDX]   = '{idx: 32'd4, start_addr: tile_fsync_ctrl_start_addr,       end_addr: tile_fsync_ctrl_end_addr       };
+  assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_COLL_CTRL_IDX]    = '{idx: 32'd7, start_addr: tile_coll_ctrl_start_addr,         end_addr: tile_coll_ctrl_end_addr       };
 `endif
 
   assign axi_xbar_rule[magia_tile_pkg::AXI_XBAR_L2_IDX]       = '{idx: 32'd0, start_addr: magia_tile_pkg::L2_ADDR_START, end_addr: magia_tile_pkg::L2_ADDR_END };
@@ -678,20 +683,13 @@ module magia_tile
     .obi_req_i           ( core_mem_data_req[magia_tile_pkg::OBI_XBAR_L2_IDX] ),
     .obi_rsp_o           ( core_mem_data_rsp[magia_tile_pkg::OBI_XBAR_L2_IDX] ),
     .user_i              ( axi_data_user                                      ),
-    .axi_req_o           ( core_l2_data_req_unfiltered                        ),
+    .axi_req_o           ( core_l2_data_req                                   ),
     .axi_rsp_i           ( core_l2_data_rsp                                   ),
     .axi_rsp_channel_sel (                                                    ),
     .axi_rsp_b_user_o    (                                                    ),
     .axi_rsp_r_user_o    (                                                    ),
     .obi_rsp_user_i      ( obi_rsp_data_user                                  )
   );
-
-
-  mcast_gen i_mcast_gen (
-    .data_req_i ( core_l2_data_req_unfiltered ),
-    .data_req_o ( core_l2_data_req )
-  );
-
 
   instr2cache_req i_core_instr2cache_req (
     .instr_req_i ( core_instr_req       ),
@@ -1919,6 +1917,15 @@ module magia_tile
   assign noc_west_rsp_o = floo_router_rsp_out[3];
   assign floo_router_wide_in[3] = noc_west_wide_i;
   
+  collective_gen i_coll_gen (
+    .clk_i             ( sys_clk                                           ),
+    .rst_ni            ( rst_ni                                            ),
+    .collective_mask_i ( collective_mask                                   ),
+    .collective_op_i   ( collective_op                                     ),
+    .data_req_i        ( axi_xbar_mst_req[magia_tile_pkg::AXI_MST_EXT_IDX] ),
+    .data_req_o        ( collective_filter                                 )
+  );
+
   floo_nw_chimney #(
     .AxiCfgN              ( AxiCfgN                                  ),
     .AxiCfgW              ( AxiCfgW                                  ),
@@ -1950,7 +1957,7 @@ module magia_tile
     .rst_ni               ( rst_ni                                            ),
     .test_enable_i        ( test_mode_i                                       ),
     .sram_cfg_i           ( '0                                                ),
-    .axi_narrow_in_req_i  ( axi_xbar_mst_req[magia_tile_pkg::AXI_MST_EXT_IDX] ),
+    .axi_narrow_in_req_i  ( collective_filter                                 ),
     .axi_narrow_in_rsp_o  ( axi_xbar_mst_rsp[magia_tile_pkg::AXI_MST_EXT_IDX] ),
     .axi_narrow_out_req_o ( axi_xbar_slv_req[magia_tile_pkg::AXI_SLV_EXT_IDX] ),
     .axi_narrow_out_rsp_i ( axi_xbar_slv_rsp[magia_tile_pkg::AXI_SLV_EXT_IDX] ),
@@ -2128,7 +2135,7 @@ module magia_tile
   */
 
   tile_csr #(
-    .BaseAddr              ( magia_tile_pkg::TILE_CSR_START                                  )
+    .BaseAddr              ( magia_tile_pkg::TILE_CSR_START                                )
   ) i_tile_csr (
     .clk_i                  ( sys_clk                                                      ),
     .rst_ni                 ( rst_ni                                                       ),
@@ -2137,6 +2144,8 @@ module magia_tile
     .spatz_clk_en_o         ( spatz_clk_en                                                 ),
     .spatz_start_o          ( spatz_start                                                  ),
     .spatz_done_o           ( spatz_done                                                   ),
+    .collective_mask_o      ( collective_mask                                              ),
+    .collective_op_o        ( collective_op                                                ),
     .cluster_clk_en_o       ( cluster_clk_en                                               ),
     .cluster_boot_addr_o    ( cluster_boot_addr                                            ),
     .cluster_fetch_en_o     ( cluster_fetch_enable                                         ),
