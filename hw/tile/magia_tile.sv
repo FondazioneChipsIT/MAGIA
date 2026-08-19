@@ -497,7 +497,6 @@ module magia_tile
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_REDMULE_CTRL_IDX] = '{idx: 32'd2, start_addr: tile_redmule_ctrl_start_addr,     end_addr: tile_redmule_ctrl_end_addr     };
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_IDMA_IDX]         = '{idx: 32'd3, start_addr: tile_idma_ctrl_start_addr,        end_addr: tile_idma_ctrl_end_addr        };
   assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_FSYNC_CTRL_IDX]   = '{idx: 32'd4, start_addr: tile_fsync_ctrl_start_addr,       end_addr: tile_fsync_ctrl_end_addr       };
-  assign obi_xbar_rule[magia_tile_pkg::OBI_XBAR_COLL_CTRL_IDX]    = '{idx: 32'd7, start_addr: tile_coll_ctrl_start_addr,         end_addr: tile_coll_ctrl_end_addr       };
 `endif
 
   assign axi_xbar_rule[magia_tile_pkg::AXI_XBAR_L2_IDX]       = '{idx: 32'd0, start_addr: magia_tile_pkg::L2_ADDR_START, end_addr: magia_tile_pkg::L2_ADDR_END };
@@ -1859,22 +1858,7 @@ module magia_tile
   red_narrow_req_t offload_narrow_req;
   red_narrow_rsp_t offload_narrow_rsp;
 
-  logic[63:0] wide_alu_result, narrow_alu_result;
-
-  floo_reduction_alu i_wide_floo_alu (
-  .clk_i(sys_clk),
-  .rst_ni(rst_ni),
-  .flush_i(1'b0),
-  .alu_req_op1_i(offload_wide_req.req.operand1[63:0]),
-  .alu_req_op2_i(offload_wide_req.req.operand2[63:0]),
-  .alu_req_type_i(offload_wide_req.req.op),
-  .alu_req_valid_i(offload_wide_req.valid),
-  .alu_req_ready_o(offload_wide_rsp.ready),
-  .alu_resp_data_o(wide_alu_result),
-  .alu_resp_valid_o(offload_wide_rsp.valid),
-  .alu_resp_ready_i(offload_wide_req.ready)
-);
-
+  logic[63:0] narrow_alu_result;
 
 floo_reduction_alu i_narrow_floo_alu (
   .clk_i(sys_clk),
@@ -1890,7 +1874,6 @@ floo_reduction_alu i_narrow_floo_alu (
   .alu_resp_ready_i(offload_narrow_req.ready)
 );
 
-assign offload_wide_rsp.rsp.result = {{192{1'b0}}, wide_alu_result};
 assign offload_narrow_rsp.rsp.result = narrow_alu_result[31:0];
 
   floo_nw_router #(
