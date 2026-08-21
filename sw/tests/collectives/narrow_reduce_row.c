@@ -24,8 +24,10 @@
 #include "magia_coll_utils.h"
 
 #define REDUCE_OFFSET (0x1000)
+#define SYNC_OFFSET (0x2000)
+
 #define DESTINATION_HART_ID 0
-#define CACHE_HEAT_CYCLES (5)
+#define SYNC_PATTERN 3
 
 int main() {
     
@@ -61,6 +63,18 @@ int main() {
     reduced_data = unreduced_data * MESH_X_TILES;
     while(mmio32(L1_BASE + get_hartid()*L1_TILE_OFFSET + REDUCE_OFFSET) != reduced_data) {};
     printf("SUM TEST PASSED\n");
+  }
+
+
+  // ************************** BARRIER ***************************** //
+  /*
+  * To avoid overlapping the SUM and MUL test, we use a barrier.
+  */
+  if(GET_Y_ID(get_hartid()) == GET_Y_ID(DESTINATION_HART_ID)){
+    printf("Barrier...\n");
+    set_collective_mask(gen_collective_mask(ROW));
+    set_collective_op(LSBAND);
+    mmio32(COLLECTIVE_ADDR_OFFSET + L1_BASE + DESTINATION_HART_ID*L1_TILE_OFFSET + SYNC_OFFSET) = SYNC_PATTERN;
   }
 
 
