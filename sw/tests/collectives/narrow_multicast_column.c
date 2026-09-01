@@ -49,12 +49,11 @@ int main() {
     */ 
     mmio32(COLLECTIVE_ADDR_OFFSET + L1_BASE + get_hartid()*L1_TILE_OFFSET + MEM_OFFSET) = BROADCAST_WORD;
     
-  } else {
-
     /*
     * Only the tiles that have the same X coordinate as the source tile participate in the collective operation
     */
-    if(GET_X_ID(get_hartid()) == GET_X_ID(SOURCE_HART_ID)){
+  } else if(GET_X_ID(get_hartid()) == GET_X_ID(SOURCE_HART_ID)){
+
         printf("Destination of the multicast\n");
 
         /*

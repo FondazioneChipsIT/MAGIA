@@ -50,8 +50,7 @@ int main() {
   */
   if(GET_X_ID(get_hartid()) == GET_X_ID(DESTINATION_HART_ID)){
     printf("Summing...\n");
-    mmio32(COLLECTIVE_ADDR_OFFSET +  L1_BASE + DESTINATION_HART_ID*L1_TILE_OFFSET + REDUCE_OFFSET) = unreduced_data;
-    printf("After sum...\n");
+    mmio32(COLLECTIVE_ADDR_OFFSET + L1_BASE + DESTINATION_HART_ID*L1_TILE_OFFSET + REDUCE_OFFSET) = unreduced_data;
   }
 
   /*
